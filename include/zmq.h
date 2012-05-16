@@ -255,6 +255,11 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_EVENT_CLOSE_FAILED 9
 #define ZMQ_EVENT_DISCONNECTED 10
 
+#define ZMQ_EVENT_SNDHWM_REACHED 11
+#define ZMQ_EVENT_RCVHWM_REACHED 12
+#define ZMQ_EVENT_SNDHWM_RECOVERED 13
+#define ZMQ_EVENT_RCVHWM_RECOVERED 14
+
 /*  Socket event data (union member per event)                                */
 typedef union {
     struct {

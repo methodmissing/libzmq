@@ -148,12 +148,15 @@ bool zmq::pipe_t::read (msg_t *msg_)
 
 bool zmq::pipe_t::check_write ()
 {
-    if (unlikely (!out_active || state != active))
+    if (unlikely (!out_active || state != active)) {
+        printf("[ZMQ_EVENT_SNDHWM_REACHED] pipe.cpp check_write (dropping)\n");
         return false;
+    }
 
     bool full = hwm > 0 && msgs_written - peers_msgs_read == uint64_t (hwm);
 
     if (unlikely (full)) {
+        printf("[ZMQ_EVENT_SNDHWM_REACHED] pipe.cpp check_write\n");
         out_active = false;
         return false;
     }
