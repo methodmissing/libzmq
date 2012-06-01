@@ -978,11 +978,3 @@ void zmq::socket_base_t::extract_flags (msg_t *msg_)
     //  Remove MORE flag.
     rcvmore = msg_->flags () & msg_t::more ? true : false;
 }
-
-void zmq::socket_base_t::monitor_event (int event_, ...)
-{
-    va_list args;
-    va_start (args, event_);
-    get_ctx ()->monitor_event (this, event_, args);
-    va_end (args);
-}

@@ -51,6 +51,7 @@ namespace zmq
         uint32_t get_tid ();
         ctx_t *get_ctx ();
         void process_command (zmq::command_t &cmd_);
+        virtual void monitor_event (int event_, ...);
 
     protected:
 
