@@ -128,7 +128,9 @@ int zmq::ctx_t::terminate ()
 
 int zmq::ctx_t::monitor (zmq_monitor_fn *monitor_)
 {
+    monitor_sync.lock ();
     monitor_fn = monitor_;
+    monitor_sync.unlock ();
     return 0;
 }
 

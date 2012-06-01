@@ -168,6 +168,9 @@ namespace zmq
         //  Synchronisation of access to context options.
         mutex_t opt_sync;
 
+        //  Synchronisation of monitor option.
+        mutex_t monitor_sync;
+
         // Monitoring callback
         zmq_monitor_fn *monitor_fn;
 
