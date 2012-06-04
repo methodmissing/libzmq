@@ -28,6 +28,11 @@ The callback is global (per context), with the socket that triggered the event
 passed to the handler as well. Each event also populates a 'zmq_event_data_t'
 union with additional metadata which can be used for correlation.
 
+It is recommended to register a monitoring callback before any sockets are created
+to ensure that there's no blind spots and socket events not being observed.
+An attempt to set (or reset) a monitor callback after at least one socket has
+been created will fail with 'EINVAL'.
+
 CAUTION: _zmq_ctx_set_monitor()_ is intended for monitoring infrastructure / operations
 concerns only - NOT BUSINESS LOGIC. An event is a representation of something
 that happened - you cannot change the past, but only react to them. The
@@ -166,7 +171,7 @@ below.
 ERRORS
 ------
 *EINVAL*::
-The requested callback function _monitor_ is invalid.
+The context has already been initialized (I/O thread and mailboxes created). 
 
 
 EXAMPLE
@@ -188,6 +193,7 @@ void socket_monitor (void *s, int event_, zmq_event_data_t *data_)
 }
 
 void *context = zmq_ctx_new ();
+// register monitor callback before we create any sockets
 int rc = zmq_ctx_set_monitor (context, socket_monitor);
 assert (rc == 0);
 void *pub = zmq_socket (context, ZMQ_PUB);

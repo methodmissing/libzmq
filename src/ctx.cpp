@@ -129,6 +129,12 @@ int zmq::ctx_t::terminate ()
 int zmq::ctx_t::monitor (zmq_monitor_fn *monitor_)
 {
     monitor_sync.lock ();
+    // Monitor function cannot be set after the context has been initialized
+    if (starting == false) {
+        monitor_sync.unlock ();
+        errno = EINVAL;
+        return -1;
+    }
     monitor_fn = monitor_;
     monitor_sync.unlock ();
     return 0;

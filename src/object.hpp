@@ -23,6 +23,7 @@
 #define __ZMQ_OBJECT_HPP_INCLUDED__
 
 #include "stdint.hpp"
+#include "../include/zmq.h"
 
 namespace zmq
 {
@@ -123,6 +124,9 @@ namespace zmq
 
         //  Thread ID of the thread the object belongs to.
         uint32_t tid;
+
+        // Monitoring callback
+        zmq_monitor_fn *monitor_fn;
 
         void send_command (command_t &cmd_);
 

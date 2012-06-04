@@ -89,6 +89,11 @@ int main (int argc, char *argv [])
     void *rep = zmq_socket (ctx, ZMQ_REP);
     assert (rep);
 
+    // Attempt to reset socket monitor after context initialized should fail
+    rc = zmq_ctx_set_monitor (ctx, socket_monitor);
+    assert (rc == -1);
+    assert (zmq_errno() == EINVAL);
+
     rc = zmq_bind (rep, "tcp://127.0.0.1:5560");
     assert (rc == 0);
 

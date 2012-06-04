@@ -34,12 +34,14 @@ zmq::object_t::object_t (ctx_t *ctx_, uint32_t tid_) :
     ctx (ctx_),
     tid (tid_)
 {
+    monitor_fn = ctx->get_monitor ();
 }
 
 zmq::object_t::object_t (object_t *parent_) :
     ctx (parent_->ctx),
     tid (parent_->tid)
 {
+    monitor_fn = ctx->get_monitor ();
 }
 
 zmq::object_t::~object_t ()
@@ -151,7 +153,6 @@ void zmq::object_t::destroy_socket (socket_base_t *socket_)
 
 void zmq::object_t::monitor_event (int event_, ...)
 {
-    zmq_monitor_fn *monitor_fn = ctx->get_monitor();
     if (monitor_fn != NULL) {
         va_list args;
         va_start (args, event_);
