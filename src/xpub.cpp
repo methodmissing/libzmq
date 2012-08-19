@@ -47,7 +47,7 @@ void zmq::xpub_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
     //  to all data on this pipe, implicitly. Also, if we are using
     //  0MQ/2.x-style protocol, there's no subscription forwarding. Thus,
     //  we need to subscribe for all messages automatically.
-    if (icanhasall_ || pipe_->get_protocol () == 1)
+    if (icanhasall_ || pipe_->get_protocol_version () == 2)
         subscriptions.add (NULL, 0, pipe_);
 
     //  The pipe is active when attached. Let's read the subscriptions from

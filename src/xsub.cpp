@@ -52,7 +52,7 @@ void zmq::xsub_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
 
     //  Pipes with 0MQ/2.x-style protocol are not eligible for accepting
     //  subscriptions.
-    if (pipe_->get_protocol () != 1)
+    if (pipe_->get_protocol_version () == 3)
         dist.attach (pipe_);
 
     //  Send all the cached subscriptions to the new upstream peer.
@@ -73,13 +73,13 @@ void zmq::xsub_t::xwrite_activated (pipe_t *pipe_)
 void zmq::xsub_t::xterminated (pipe_t *pipe_)
 {
     fq.terminated (pipe_);
-    if (pipe_->get_protocol () != 1)
+    if (pipe_->get_protocol_version () == 3)
         dist.terminated (pipe_);
 }
 
 void zmq::xsub_t::xhiccuped (pipe_t *pipe_)
 {
-    if (pipe_->get_protocol () != 1) {
+    if (pipe_->get_protocol_version () == 3) {
         //  Send all the cached subscriptions to the hiccuped pipe.
         subscriptions.apply (send_subscription, pipe_);
         pipe_->flush ();

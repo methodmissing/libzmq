@@ -44,7 +44,7 @@ namespace zmq
     //  pipe receives all the pending messages before terminating, otherwise it
     //  terminates straight away.
     int pipepair (zmq::object_t *parents_ [2], zmq::pipe_t* pipes_ [2],
-        int hwms_ [2], bool delays_ [2], int protocol_);
+        int hwms_ [2], bool delays_ [2], int protocol_version_);
 
     struct i_pipe_events
     {
@@ -68,7 +68,7 @@ namespace zmq
     {
         //  This allows pipepair to create pipe objects.
         friend int pipepair (zmq::object_t *parents_ [2],
-            zmq::pipe_t* pipes_ [2], int hwms_ [2], bool delays_ [2], int protocol_);
+            zmq::pipe_t* pipes_ [2], int hwms_ [2], bool delays_ [2], int protocol_version_);
 
     public:
 
@@ -111,7 +111,7 @@ namespace zmq
         void terminate (bool delay_);
 
         //  Returns the ID of the protocol associated with the pipe.
-        int get_protocol ();
+        int get_protocol_version ();
 
     private:
 
@@ -193,7 +193,7 @@ namespace zmq
 
         //  ID of the protocol to use. This value is not used by the pipe
         //  itself, rather it's used by the users of the pipe.
-        int protocol;
+        int protocol_version;
 
         //  Identity of the writer. Used uniquely by the reader side.
         blob_t identity;

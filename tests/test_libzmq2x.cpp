@@ -55,8 +55,8 @@ int main (int argc, char *argv [])
     assert (ctx);
     void *pub = zmq_socket (ctx, ZMQ_PUB);
     assert (pub);
-    int invalid_protocol = 2;
-    int protocol = 1;
+    int invalid_protocol = 4;
+    int protocol = 2;
     int rc = zmq_setsockopt (pub, ZMQ_PROTOCOL, &invalid_protocol, sizeof (invalid_protocol));
     assert (rc == -1);
     rc = zmq_setsockopt (pub, ZMQ_PROTOCOL, &protocol, sizeof (protocol));
@@ -104,7 +104,7 @@ int main (int argc, char *argv [])
     assert (ctx);
     void *sub = zmq_socket (ctx, ZMQ_SUB);
     assert (sub);
-    protocol = 1;
+    protocol = 2;
     rc = zmq_setsockopt (sub, ZMQ_PROTOCOL, &protocol, sizeof (protocol));
     assert (rc == 0);
     rc = zmq_setsockopt (sub, ZMQ_SUBSCRIBE, "", 0);
@@ -155,6 +155,50 @@ int main (int argc, char *argv [])
 
     //  Pass one message with usused flags set (0MQ/2.1 bug).
     rc = send (oldpub, "\x04\xfe" "ABC", 5, 0);
+    assert (rc == 5);
+    rc = zmq_recv (sub, buf, sizeof (buf), 0);
+    assert (rc == 3);
+
+    //  Test wire protocol backwards compatibility
+    rc = zmq_close (sub);
+    assert (rc == 0);
+    sub = zmq_socket (ctx, ZMQ_SUB);
+    assert (sub);
+    assert (rc == 0);
+    rc = zmq_setsockopt (sub, ZMQ_SUBSCRIBE, "", 0);
+    assert (rc == 0);
+    rc = zmq_bind (sub, "tcp://127.0.0.1:5560");
+    assert (rc == 0);
+
+    oldpub = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = inet_addr ("127.0.0.1");
+    address.sin_port = htons (5560);
+    rc = connect (oldpub, (struct sockaddr*) &address, sizeof (address));
+    assert (rc == 0);
+
+    //  Wait a while to allow connection to be accepted on the subscriber side.
+    zmq_sleep (1);
+
+    //  Set the socket to the non-blocking mode.
+    #ifdef ZMQ_HAVE_WINDOWS
+        u_long nonblock = 1;
+        rc = ioctlsocket (oldpub, FIONBIO, &nonblock);
+        assert (rc != SOCKET_ERROR);
+    #elif ZMQ_HAVE_OPENVMS
+	    nonblock = 1;
+	    rc = ioctl (oldpub, FIONBIO, &nonblock);
+        assert (rc != -1);
+    #else
+	    flags = fcntl (oldpub, F_GETFL, 0);
+	    if (flags == -1)
+            flags = 0;
+	    rc = fcntl (oldpub, F_SETFL, flags | O_NONBLOCK);
+        assert (rc != -1);
+    #endif
+
+    //  Pass one message through.
+    rc = send (oldpub, "\x04\0ABC", 5, 0);
     assert (rc == 5);
     rc = zmq_recv (sub, buf, sizeof (buf), 0);
     assert (rc == 3);

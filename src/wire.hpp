@@ -23,8 +23,20 @@
 
 #include "stdint.hpp"
 
+//  Protocol header.
+#define ZMQ_HEADER_LENGTH 2
+
 namespace zmq
 {
+    //  Protocol header type.
+    typedef unsigned char zmq_header_t [ZMQ_HEADER_LENGTH];
+
+    //  Get the ZMQ protocol header
+    inline void zmq_get_header (zmq_header_t header_, int version_, int type_)
+    {
+        header_ [0] = version_;                      //  Protocol version
+       // protocol type / compliment still pending
+    }
 
     //  Helper functions to convert different integer types to/from network
     //  byte order.

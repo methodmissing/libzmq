@@ -54,8 +54,19 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, cons
     session (NULL),
     options (options_),
     endpoint (endpoint_),
-    plugged (false)
+    plugged (false),
+    header_pos (in_header),
+    header_remaining (sizeof in_header),
+    header_received (false),
+    header_sent (false)
 {
+    //  Fill in outgoing ZMQ protocol header and the complementary (desired)
+    //  header.
+    if (options.protocol_version == 3) {
+        zmq_get_header (out_header, options.protocol_version, options.type);
+        zmq_get_header (desired_header, options.protocol_version, options.type);
+    }
+
     //  Put the socket into non-blocking mode.
     unblock_socket (s);
     //  Set the socket buffer limits for the underlying socket.
@@ -152,6 +163,32 @@ void zmq::stream_engine_t::in_event ()
 {
     bool disconnection = false;
 
+    //  If we have not yet received the full protocol header...
+    if (unlikely (options.protocol_version == 3 && !header_received)) {
+        //  Read remaining header bytes.
+        int hbytes = read (header_pos, header_remaining);
+        //  Check whether the peer has closed the connection.
+        if (hbytes == -1) {
+            error ();
+            return;
+        }
+        header_remaining -= hbytes;
+        header_pos += hbytes;
+        //  If we did not read the whole header, poll for more.
+        if (header_remaining)
+            return;
+        //  If the protocol headers do not match, downgrade the protocol version
+        if (memcmp (in_header, desired_header, sizeof in_header) != 0) {
+            int protocol_version = 2;
+            options.setsockopt(ZMQ_PROTOCOL, &protocol_version, sizeof (int));
+            decoder.get_buffer (&inpos, &insize);
+            insize = hbytes;
+            memcpy(inpos, in_header, insize);
+        }
+        //  Done with protocol header; proceed to read data.
+        header_received = true;
+    }
+
     //  If there's no data to process in the buffer...
     if (!insize) {
 
@@ -205,6 +242,19 @@ void zmq::stream_engine_t::in_event ()
 
 void zmq::stream_engine_t::out_event ()
 {
+    //  If protocol header was not yet sent...
+    if (unlikely (options.protocol_version == 3 && !header_sent)) {
+        int hbytes = write (out_header, sizeof out_header);
+        //  It should always be possible to write the full protocol header to a
+        //  freshly connected TCP socket. Therefore, if we get an error or
+        //  partial write here the peer has disconnected.
+        if (hbytes != sizeof out_header) {
+            error ();
+            return;
+        }
+        header_sent = true;
+    }
+
     //  If write buffer is empty, try to read new data from the encoder.
     if (!outsize) {
 
