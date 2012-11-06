@@ -251,19 +251,21 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_SNDTIMEO 28
 #define ZMQ_IPV4ONLY 31
 #define ZMQ_LAST_ENDPOINT 32
-#define ZMQ_ROUTER_BEHAVIOR 33
+#define ZMQ_ROUTER_MANDATORY 33
 #define ZMQ_TCP_KEEPALIVE 34
 #define ZMQ_TCP_KEEPALIVE_CNT 35
 #define ZMQ_TCP_KEEPALIVE_IDLE 36
 #define ZMQ_TCP_KEEPALIVE_INTVL 37
 #define ZMQ_TCP_ACCEPT_FILTER 38
 #define ZMQ_DELAY_ATTACH_ON_CONNECT 39
-#define ZMQ_TLS_CA_DIR 40
-#define ZMQ_TLS_CA_FILE 41
-#define ZMQ_TLS_CERT_DIR 42
-#define ZMQ_TLS_CERT_FILE 43
-#define ZMQ_TLS_KEY_FILE 44
-#define ZMQ_TLS_CERT_PASSWD 46
+#define ZMQ_XPUB_VERBOSE 40
+#define ZMQ_ROUTER_RAW_SOCK 41
+#define ZMQ_TLS_CA_DIR 42
+#define ZMQ_TLS_CA_FILE 43
+#define ZMQ_TLS_CERT_DIR 44
+#define ZMQ_TLS_CERT_FILE 45
+#define ZMQ_TLS_KEY_FILE 46
+#define ZMQ_TLS_CERT_PASSWD 47
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1
@@ -271,8 +273,11 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 /*  Send/recv options.                                                        */
 #define ZMQ_DONTWAIT 1
 #define ZMQ_SNDMORE 2
+
 /*  Deprecated aliases                                                        */
 #define ZMQ_NOBLOCK ZMQ_DONTWAIT
+#define ZMQ_FAIL_UNROUTABLE ZMQ_ROUTER_MANDATORY
+#define ZMQ_ROUTER_BEHAVIOR ZMQ_ROUTER_MANDATORY
 
 /******************************************************************************/
 /*  0MQ socket events and monitoring                                          */
@@ -391,15 +396,15 @@ typedef struct
 
 ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items, int nitems, long timeout);
 
-//  Built-in message proxy (3-way)
+/*  Built-in message proxy (3-way) */
 
 ZMQ_EXPORT int zmq_proxy (void *frontend, void *backend, void *capture);
 
-//  Deprecated aliases
+/*  Deprecated aliases */
 #define ZMQ_STREAMER 1
 #define ZMQ_FORWARDER 2
 #define ZMQ_QUEUE 3
-//  Deprecated method
+/*  Deprecated method */
 ZMQ_EXPORT int zmq_device (int type, void *frontend, void *backend);
 
 #undef ZMQ_EXPORT

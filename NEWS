@@ -1,3 +1,140 @@
+0MQ version 3.2.1 (RC2), released on 2012/10/15
+===============================================
+
+Issues addressed in this release
+--------------------------------
+
+* Fixed issue xxx - handle insufficient resources on accept() properly.
+* Fixed issue 443 - added ZMQ_XPUB_VERBOSE setsocket option.
+* Fixed issue 433 - ZeroMQ died on receiving EPIPE
+* Fixed issue 423 - test_pair_tcp hangs
+* Fixed issue 416 - socket_base: fix 'va_list' has not been declared error
+* Fixed issue 409 - Pub-sub interoperability between 2.x and 3.x.
+* Fixed issue 404 - zmq_term can not safely be re-entered with pgm transport
+* Fixed issue 399 - zmq_ctx_set_monitor callback is not works properly
+* Fixed issue 393 - libzmq does not build on Android (socklen_t signed comparison)
+* Fixed issue 392 - Interaction with pyzmq on Android
+* Fixed issue 389 - Assertion failure in mtrie.cpp:317
+* Fixed issue 388 - tests/test_monitor.cpp has no newline at EOF (causes compile error)
+* Fixed issue 387 - "sa_family_t sa_family;" in pgm_socket.cpp is unused variable
+* Fixed issue 385 - Rework ZMQ_FAIL_UNROUTABLE socket option to actually work
+* Fixed issue 382 - Current libzmq doesn't compile on Android NDK
+* Fixed issue 377 - ZeroMQ will not build on Windows with OpenPGM
+* Fixed issue 375 - error: unused variable 'sa_family'
+* Fixed issue 373 - Unable to build libzmq/zeromq3.x on AIX7
+* Fixed issue 372 - Unable to build libzmq/zeromq3.x on HPUX 11iv3
+* Fixed issue 371 - Unable to build libzmq/zeromq3.x on RHEL5/SLES10
+* Fixed issue 329 - wsa_error_to_errno() calls abort() on WSAEACCES
+* Fixed issue 309 - Assertion failed: options.recv_identity (socket_base.cpp:864)
+* Fixed issue 211 - Assertion failed: msg_->flags & ZMQ_MSG_MORE (rep.cpp:81)
+
+API changes
+-----------
+
+* zmq_device () deprecated and replaced by zmq_proxy ().
+* zmq_ctx_set_monitor () replaced by zmq_socket_monitor ().
+* ZMQ_ROUTER_BEHAVIOR/ZMQ_FAIL_UNROUTABLE renamed experimentally to
+  ZMQ_ROUTER_MANDATORY.
+
+
+0MQ version 3.2.0 (RC1), released on 2012/06/05
+===============================================
+
+Bug fixes
+---------
+
+* Fixed issue 264 - Potential bug with linger, messages dropped during
+  socket close.
+
+* Fixed issue 293 - libzmq doesn't follow the ZMTP/1.0 spec (did not
+  set reserved bits to 0).
+
+* Fixed issue 303 - Assertion failure in pgm_sender.cpp:102.
+
+* Fixed issue 320 - Assertion failure in connect_session.cpp:96 when
+  connecting epgm to an invalid endpoint.
+
+* Fixed issue 325 - Assertion failure in xrep.cpp:93, when two sockets
+  connect using the same identity.
+
+* Fixed issue 327 - Assertion failure in mtrie.cpp:246, when
+  unsubscribing from channel.
+
+* Fixed issue 346 - Assertion failure in signaler.cpp:155, when using a
+  closed socket.
+
+* Fixed issue 328 - unsubscribe wrongly clears multiple subscriptions.
+
+* Fixed issue 330 - IPC listener does not remove unix domain stream file
+  when terminated.
+
+* Fixed issue 334 - Memory leak in session_base.cpp:59.
+
+* Fixed issue 369 - ROUTER cannot close/reopen while DEALER connected.
+
+Operating systems
+-----------------
+
+* Fixed issue 301 - HPUX 11iv2 - build fails, CLOCK_MONOTONIC
+  undefined.
+
+* Fixed issue 324 - OS/X - build fails, ECANTROUTE undefined.
+
+* Fixed issue 368 - Solaris / Sun C++ - build fails, no insert method
+  in multimap classes.
+
+* Fixed issue 366 - Windows - ports not freed after crash.
+
+* Fixed issue 355 - Windows - build fails, MSVC solution file is out of
+  date.
+
+* Fixed issue 331 - FreeBSD 8 and 9 - getaddrinfo fails with
+  EAI_BADFLAGS on AI_V4MAPPED flag.
+
+* Fixed issue xxx - Added support for WinCE.
+
+Performance
+-----------
+
+* Fixed issue xxx - Implemented atomic operations for ARMv7a (runs 15-20% faster).
+
+API changes
+-----------
+
+* Fixed issue 337 - Cleaned-up context API:
+
+    zmq_ctx_new() - create new context (will deprecate zmq_init)
+    zmq_ctx_destroy() - destroy context (will deprecate zmq_term)
+    zmq_ctx_set() - set context property
+    zmq_ctx_get() - get context property
+
+* Fixed issue xxx - Cleaned-up message API:
+
+    zmq_msg_send() - send a message (will deprecate zmq_sendmsg)
+    zmq_msg_recv() - receive a message (will deprecate zmq_recvmsg)
+    zmq_msg_more() - indicate whether this is final part of message
+    zmq_msg_get() - get message property
+    zmq_msg_set() - set message property
+
+* Fixed issue xxx - Added context monitoring API:
+
+    zmq_ctx_set_monitor() - configure monitor callback.
+
+* Fixed issue xxx - Added unbind/disconnect API:
+
+    zmq_unbind() - unbind socket.
+    zmq_disconnect() - disconnect socket.
+
+* Fixed issue xxx - Added ZMQ_TCP_ACCEPT_FILTER setsockopt() for listening TCP sockets.
+
+* Fixed issue 336 - Removed sys: transport.
+
+* Fixed issue 333 - Added zmq_device function back to API (was removed
+  in 3.0).
+
+* Fixed issue 340 - Add support for MAX_SOCKETS to new context API.
+
+
 OMQ version 3.1.0 (beta), released on 2011/12/18
 ================================================
 

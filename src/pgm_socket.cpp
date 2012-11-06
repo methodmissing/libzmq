@@ -239,7 +239,8 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, const char *network_)
             !pgm_setsockopt (sock, IPPROTO_PGM, PGM_NAK_NCF_RETRIES,
                 &nak_ncf_retries, sizeof (nak_ncf_retries)))
             goto err_abort;
-    } else {
+    }
+    else {
         const int send_only        = 1,
                   max_rte      = (int) ((options.rate * 1000) / 8),
                   txw_max_tpdu     = (int) pgm_max_tpdu,
@@ -326,6 +327,7 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, const char *network_)
 
     //  Set IP level parameters.
     {
+		// Multicast loopback disabled by default
 		const int multicast_loop = 0;
 		if (!pgm_setsockopt (sock, IPPROTO_PGM, PGM_MULTICAST_LOOP,
 		      &multicast_loop, sizeof (multicast_loop)))
@@ -337,7 +339,7 @@ int zmq::pgm_socket_t::init (bool udp_encapsulation_, const char *network_)
 		    goto err_abort;
 
 		//  Expedited Forwarding PHB for network elements, no ECN.
-		const int dscp = 0x2e << 2; 
+		const int dscp = 0x2e << 2;
 		if (AF_INET6 != sa_family && !pgm_setsockopt (sock,
 		      IPPROTO_PGM, PGM_TOS, &dscp, sizeof (dscp)))
 		    goto err_abort;
@@ -472,7 +474,8 @@ size_t zmq::pgm_socket_t::send (unsigned char *data_, size_t data_len_)
     if (nbytes > 0) {
         zmq_assert (status == PGM_IO_STATUS_NORMAL);
         zmq_assert (nbytes == data_len_);
-    } else {
+    }
+    else {
         zmq_assert (status == PGM_IO_STATUS_RATE_LIMITED ||
             status == PGM_IO_STATUS_WOULD_BLOCK);
 
@@ -676,7 +679,8 @@ void zmq::pgm_socket_t::process_upstream ()
 
     if (status == PGM_IO_STATUS_TIMER_PENDING)
         errno = EBUSY;
-    else if (status == PGM_IO_STATUS_RATE_LIMITED)
+    else
+    if (status == PGM_IO_STATUS_RATE_LIMITED)
         errno = ENOMEM;
     else
         errno = EAGAIN;

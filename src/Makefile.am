@@ -23,6 +23,12 @@ libzmq_la_SOURCES = \
     err.hpp \
     fd.hpp \
     fq.hpp \
+    i_encoder.hpp \
+    i_decoder.hpp \
+    i_engine.hpp \
+    i_msg_sink.hpp \
+    i_msg_source.hpp \
+    i_poll_events.hpp \
     io_object.hpp \
     io_thread.hpp \
     ip.hpp \
@@ -142,10 +148,17 @@ libzmq_la_SOURCES = \
     router.cpp \
     dealer.cpp \
     v1_decoder.cpp \
+    v1_decoder.hpp \
     v1_encoder.cpp \
+    v1_encoder.hpp \
+    v1_protocol.hpp \
     xsub.cpp \
     zmq.cpp \
-    zmq_utils.cpp
+    zmq_utils.cpp \
+    raw_decoder.hpp \
+    raw_decoder.cpp \
+    raw_encoder.hpp \
+    raw_encoder.cpp
 
 if ON_MINGW
 libzmq_la_LDFLAGS = -no-undefined -avoid-version -version-info @LTVER@ @LIBZMQ_EXTRA_LDFLAGS@

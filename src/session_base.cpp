@@ -120,6 +120,11 @@ zmq::session_base_t::session_base_t (class io_thread_t *io_thread_,
     identity_received (false),
     addr (addr_)
 {
+    //  Identities are not exchanged for raw sockets
+    if (options.raw_sock) {
+        identity_sent = true;
+        identity_received = true;
+    }
 }
 
 zmq::session_base_t::~session_base_t ()
@@ -223,7 +228,7 @@ void zmq::session_base_t::clean_pipes ()
             msg_t msg;
             int rc = msg.init ();
             errno_assert (rc == 0);
-            if (!pull_msg (&msg)) {
+            if (pull_msg (&msg) != 0) {
                 zmq_assert (!incomplete_in);
                 break;
             }
@@ -244,6 +249,15 @@ void zmq::session_base_t::terminated (pipe_t *pipe_)
     else
         // Remove the pipe from the detached pipes set
         terminating_pipes.erase (pipe_);
+
+    if (!is_terminating () && options.raw_sock) {
+        if (engine) {
+            engine->terminate ();
+            engine = NULL;
+        }
+        terminate ();
+    }
+
 
     // If we are waiting for pending messages to be sent, at this point
     // we are sure that there will be no more messages and we can proceed
@@ -489,7 +503,8 @@ void zmq::session_base_t::start_connecting (bool wait_)
 
             send_attach (this, pgm_sender);
         }
-        else if (options.type == ZMQ_SUB || options.type == ZMQ_XSUB) {
+        else
+        if (options.type == ZMQ_SUB || options.type == ZMQ_XSUB) {
 
             //  PGM receiver.
             pgm_receiver_t *pgm_receiver =  new (std::nothrow) pgm_receiver_t (

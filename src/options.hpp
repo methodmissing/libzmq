@@ -115,6 +115,9 @@ namespace zmq
         //  If true, the identity message is forwarded to the socket.
         bool recv_identity;
 
+        // if true, router socket accepts non-zmq tcp connections
+        bool raw_sock;
+
         //  TCP keep-alive settings.
         //  Defaults to -1 = do not change socket options
         int tcp_keepalive;
