@@ -266,6 +266,7 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_TLS_CERT_FILE 45
 #define ZMQ_TLS_KEY_FILE 46
 #define ZMQ_TLS_CERT_PASSWD 47
+#define ZMQ_ROUTER_RAW 48
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1
