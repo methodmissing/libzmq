@@ -122,6 +122,32 @@ namespace zmq
         int tcp_keepalive_idle;
         int tcp_keepalive_intvl;
 
+#ifdef ZMQ_HAVE_TLS
+        // Path to openSSL CA certificates directory 
+        unsigned char tls_ca_dir [255];
+        unsigned char tls_ca_dir_size;
+
+        // Path to openSSL CA certificate file 
+        unsigned char tls_ca_file [255];
+        unsigned char tls_ca_file_size;
+
+        // Directory to SSL certs
+        unsigned char tls_cert_dir [255];
+        unsigned char tls_cert_dir_size;
+
+        // Path to SSL cert
+        unsigned char tls_cert_file [255];
+        unsigned char tls_cert_file_size;
+
+        // Path to private key file
+        unsigned char tls_key_file [255];
+        unsigned char tls_key_file_size;
+
+        // Password for cert file
+        unsigned char tls_cert_passwd [255];
+        unsigned char tls_cert_passwd_size;
+#endif
+
         // TCP accept() filters
         typedef std::vector <tcp_address_mask_t> tcp_accept_filters_t;
         tcp_accept_filters_t tcp_accept_filters;

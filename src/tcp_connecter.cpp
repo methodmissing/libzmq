@@ -64,7 +64,6 @@ zmq::tcp_connecter_t::tcp_connecter_t (class io_thread_t *io_thread_,
     current_reconnect_ivl(options.reconnect_ivl)
 {
     zmq_assert (addr);
-    zmq_assert (addr->protocol == "tcp");
     addr->to_string (endpoint);
     socket = session-> get_socket();
 }

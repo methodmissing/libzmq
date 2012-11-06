@@ -33,6 +33,10 @@
 #include "i_msg_sink.hpp"
 #include "socket_base.hpp"
 
+#ifdef ZMQ_HAVE_TLS
+#include "tls_connecter.hpp"
+#endif
+
 namespace zmq
 {
 

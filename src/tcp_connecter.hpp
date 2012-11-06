@@ -46,38 +46,18 @@ namespace zmq
             const address_t *addr_, bool delayed_start_);
         ~tcp_connecter_t ();
 
-    private:
+    protected:
 
-        //  ID of the timer used to delay the reconnection.
-        enum {reconnect_timer_id = 1};
+        virtual void out_event ();
 
-        //  Handlers for incoming commands.
-        void process_plug ();
-        void process_term (int linger_);
-
-        //  Handlers for I/O events.
-        void in_event ();
-        void out_event ();
-        void timer_event (int id_);
+        //  Close the connecting socket.
+        virtual void close ();
 
         //  Internal function to start the actual connection establishment.
         void start_connecting ();
 
         //  Internal function to add a reconnect timer
         void add_reconnect_timer();
-
-        //  Internal function to return a reconnect backoff delay.
-        //  Will modify the current_reconnect_ivl used for next call
-        //  Returns the currently used interval
-        int get_new_reconnect_ivl ();
-
-        //  Open TCP connecting socket. Returns -1 in case of error,
-        //  0 if connect was successfull immediately. Returns -1 with
-        //  EAGAIN errno if async connect was launched.
-        int open ();
-
-        //  Close the connecting socket.
-        void close ();
 
         //  Get the file descriptor of newly created connection. Returns
         //  retired_fd if the connection was unsuccessfull.
@@ -113,6 +93,29 @@ namespace zmq
 
         // Socket
         zmq::socket_base_t *socket;
+
+    private:
+
+        //  ID of the timer used to delay the reconnection.
+        enum {reconnect_timer_id = 1};
+
+        //  Handlers for incoming commands.
+        void process_plug ();
+        void process_term (int linger_);
+
+        //  Handlers for I/O events.
+        void in_event ();
+        void timer_event (int id_);
+
+        //  Internal function to return a reconnect backoff delay.
+        //  Will modify the current_reconnect_ivl used for next call
+        //  Returns the currently used interval
+        int get_new_reconnect_ivl ();
+
+        //  Open TCP connecting socket. Returns -1 in case of error,
+        //  0 if connect was successfull immediately. Returns -1 with
+        //  EAGAIN errno if async connect was launched.
+        int open ();
 
         tcp_connecter_t (const tcp_connecter_t&);
         const tcp_connecter_t &operator = (const tcp_connecter_t&);

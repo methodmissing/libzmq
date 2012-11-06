@@ -37,6 +37,12 @@
 #include "err.hpp"
 #include "msg.hpp"
 
+#ifdef ZMQ_HAVE_TLS
+#include <openssl/ssl.h>
+#include <openssl/bio.h>
+#include <openssl/err.h>
+#endif
+
 zmq::ctx_t::ctx_t () :
     tag (0xabadcafe),
     starting (true),
@@ -47,6 +53,13 @@ zmq::ctx_t::ctx_t () :
     max_sockets (ZMQ_MAX_SOCKETS_DFLT),
     io_thread_count (ZMQ_IO_THREADS_DFLT)
 {
+#ifdef ZMQ_HAVE_TLS
+    CRYPTO_malloc_init();
+    SSL_library_init();
+    SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
+#endif
 }
 
 bool zmq::ctx_t::check_tag ()

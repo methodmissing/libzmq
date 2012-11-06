@@ -64,33 +64,35 @@ namespace zmq
         void in_event ();
         void out_event ();
 
+    protected:
+
+        //  Writes data to the socket. Returns the number of bytes actually
+        //  written (even zero is to be considered to be a success). In case
+        //  of error or orderly shutdown by the other peer -1 is returned.
+        virtual int write (const void *data_, size_t size_);
+
+        //  Reads data from the socket (up to 'size' bytes). Returns the number
+        //  of bytes actually read (even zero is to be considered to be
+        //  a success). In case of error or orderly shutdown by the other
+        //  peer -1 is returned.
+        virtual int read (void *data_, size_t size_);
+
+        //  Function to handle network disconnections.
+        void error ();
+
+        //  Underlying socket.
+        fd_t s;
+
     private:
 
         //  Unplug the engine from the session.
         void unplug ();
-
-        //  Function to handle network disconnections.
-        void error ();
 
         //  Receives the greeting message from the peer.
         int receive_greeting ();
 
         //  Detects the protocol used by the peer.
         bool handshake ();
-
-        //  Writes data to the socket. Returns the number of bytes actually
-        //  written (even zero is to be considered to be a success). In case
-        //  of error or orderly shutdown by the other peer -1 is returned.
-        int write (const void *data_, size_t size_);
-
-        //  Reads data from the socket (up to 'size' bytes). Returns the number
-        //  of bytes actually read (even zero is to be considered to be
-        //  a success). In case of error or orderly shutdown by the other
-        //  peer -1 is returned.
-        int read (void *data_, size_t size_);
-
-        //  Underlying socket.
-        fd_t s;
 
         //  Size of the greeting message:
         //  Preamble (10 bytes) + version (1 byte) + socket type (1 byte).

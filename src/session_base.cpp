@@ -446,6 +446,16 @@ void zmq::session_base_t::start_connecting (bool wait_)
         return;
     }
 
+#ifdef ZMQ_HAVE_TLS
+    if (addr->protocol == "tls") {
+        tls_connecter_t *connecter = new (std::nothrow) tls_connecter_t (
+            io_thread, this, options, addr, wait_);
+        alloc_assert (connecter);
+        launch_child (connecter);
+        return;
+    }
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     if (addr->protocol == "ipc") {
         ipc_connecter_t *connecter = new (std::nothrow) ipc_connecter_t (

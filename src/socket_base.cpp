@@ -41,6 +41,7 @@
 
 #include "socket_base.hpp"
 #include "tcp_listener.hpp"
+#include "tls_listener.hpp"
 #include "ipc_listener.hpp"
 #include "tcp_connecter.hpp"
 #include "io_thread.hpp"
@@ -57,6 +58,10 @@
 #include "tcp_address.hpp"
 #ifdef ZMQ_HAVE_OPENPGM
 #include "pgm_socket.hpp"
+#endif
+
+#ifdef TLS_HAVE_TLS
+#include "tls_listener.hpp"
 #endif
 
 #include "pair.hpp"
@@ -182,10 +187,18 @@ int zmq::socket_base_t::check_protocol (const std::string &protocol_)
 {
     //  First check out whether the protcol is something we are aware of.
     if (protocol_ != "inproc" && protocol_ != "ipc" && protocol_ != "tcp" &&
-          protocol_ != "pgm" && protocol_ != "epgm") {
+          protocol_ != "pgm" && protocol_ != "epgm" && protocol_ != "tls") {
         errno = EPROTONOSUPPORT;
         return -1;
     }
+
+    //  If 0MQ is not compiled with OpenSSL support, tls is not available
+#if !defined ZMQ_HAVE_TLS
+    if (protocol_ == "tls") {
+        errno = EPROTONOSUPPORT;
+        return -1;
+    }
+#endif
 
     //  If 0MQ is not compiled with OpenPGM, pgm and epgm transports
     //  are not avaialble.
@@ -368,6 +381,26 @@ int zmq::socket_base_t::bind (const char *addr_)
         return 0;
     }
 
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tls") {
+        tls_listener_t *listener = new (std::nothrow) tls_listener_t (
+            io_thread, this, options);
+        alloc_assert (listener);
+        rc = listener->set_address (address.c_str ());
+        if (rc != 0) {
+            delete listener;
+            event_bind_failed (addr_, zmq_errno());
+            return -1;
+        }
+
+        // Save last endpoint URI
+        listener->get_address (options.last_endpoint);
+
+        add_endpoint (addr_, (own_t *) listener);
+        return 0;
+    }
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     if (protocol == "ipc") {
         ipc_listener_t *listener = new (std::nothrow) ipc_listener_t (
@@ -506,6 +539,20 @@ int zmq::socket_base_t::connect (const char *addr_)
             return -1;
         }
     }
+
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tls") {
+        paddr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
+        alloc_assert (paddr->resolved.tcp_addr);
+        int rc = paddr->resolved.tcp_addr->resolve (
+            address.c_str (), false, options.ipv4only ? true : false);
+        if (rc != 0) {
+            delete paddr;
+            return -1;
+        }
+    }
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else if(protocol == "ipc") {
         paddr->resolved.ipc_addr = new (std::nothrow) ipc_address_t ();

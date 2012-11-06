@@ -44,22 +44,18 @@ namespace zmq
         ~tcp_listener_t ();
 
         //  Set address to listen on.
-        int set_address (const char *addr_);
+        virtual int set_address (const char *addr_);
 
         // Get the bound address for use with wildcard
         int get_address (std::string &addr_);
 
-    private:
-
-        //  Handlers for incoming commands.
-        void process_plug ();
-        void process_term (int linger_);
+    protected:
 
         //  Handlers for I/O events.
-        void in_event ();
+        virtual void in_event ();
 
         //  Close the listening socket.
-        void close ();
+        virtual void close ();
 
         //  Accept the new connection. Returns the file descriptor of the
         //  newly created connection. The function may return retired_fd
@@ -67,20 +63,26 @@ namespace zmq
         //  or was denied because of accept filters.
         fd_t accept ();
 
-        //  Address to listen on.
-        tcp_address_t address;
-
         //  Underlying socket.
         fd_t s;
-
-        //  Handle corresponding to the listening socket.
-        handle_t handle;
 
         //  Socket the listerner belongs to.
         zmq::socket_base_t *socket;
 
        // String representation of endpoint to bind to
         std::string endpoint;
+
+    private:
+
+        //  Handlers for incoming commands.
+        void process_plug ();
+        void process_term (int linger_);
+
+        //  Address to listen on.
+        tcp_address_t address;
+
+        //  Handle corresponding to the listening socket.
+        handle_t handle;
 
         tcp_listener_t (const tcp_listener_t&);
         const tcp_listener_t &operator = (const tcp_listener_t&);

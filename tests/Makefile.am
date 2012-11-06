@@ -26,6 +26,10 @@ noinst_PROGRAMS += test_shutdown_stress \
                    test_timeo
 endif
 
+if BUILD_TLS
+noinst_PROGRAMS += test_tls
+endif
+
 test_pair_inproc_SOURCES = test_pair_inproc.cpp testutil.hpp
 test_pair_tcp_SOURCES = test_pair_tcp.cpp testutil.hpp
 test_reqrep_inproc_SOURCES = test_reqrep_inproc.cpp testutil.hpp
@@ -47,6 +51,10 @@ test_shutdown_stress_SOURCES = test_shutdown_stress.cpp
 test_pair_ipc_SOURCES = test_pair_ipc.cpp testutil.hpp
 test_reqrep_ipc_SOURCES = test_reqrep_ipc.cpp testutil.hpp
 test_timeo_SOURCES = test_timeo.cpp
+endif
+
+if BUILD_TLS
+test_tls_SOURCES = test_tls.cpp
 endif
 
 TESTS = $(noinst_PROGRAMS)

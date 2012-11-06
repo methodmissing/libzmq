@@ -44,6 +44,10 @@
 #include <netdb.h>
 #endif
 
+#ifdef ZMQ_HAVE_TLS
+#include <openssl/err.h>
+#endif
+
 namespace zmq
 {
     const char *errno_to_string (int errno_);

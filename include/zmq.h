@@ -140,6 +140,15 @@ ZMQ_EXPORT void zmq_version (int *major, int *minor, int *patch);
 #define ETERM (ZMQ_HAUSNUMERO + 53)
 #define EMTHREAD (ZMQ_HAUSNUMERO + 54)
 
+/*  SSL specific error codes.                                                 */
+#define ESSLRSA (ZMQ_HAUSNUMERO + 57) // XXX: remove
+#define ESSLVERIFY (ZMQ_HAUSNUMERO + 59) // XXX: remove
+#define ESSLCA (ZMQ_HAUSNUMERO + 64)
+#define ESSLCERT (ZMQ_HAUSNUMERO + 65)
+#define ESSLKEY (ZMQ_HAUSNUMERO + 66)
+#define ESSLKEYINVALID (ZMQ_HAUSNUMERO + 67)
+#define ESSLPASS (ZMQ_HAUSNUMERO + 68)
+
 /*  This function retrieves the errno as it is known to 0MQ library. The goal */
 /*  of this function is to make the code 100% portable, including where 0MQ   */
 /*  compiled with certain CRT library (on Windows) is linked to an            */
@@ -249,6 +258,12 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_TCP_KEEPALIVE_INTVL 37
 #define ZMQ_TCP_ACCEPT_FILTER 38
 #define ZMQ_DELAY_ATTACH_ON_CONNECT 39
+#define ZMQ_TLS_CA_DIR 40
+#define ZMQ_TLS_CA_FILE 41
+#define ZMQ_TLS_CERT_DIR 42
+#define ZMQ_TLS_CERT_FILE 43
+#define ZMQ_TLS_KEY_FILE 44
+#define ZMQ_TLS_CERT_PASSWD 46
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1

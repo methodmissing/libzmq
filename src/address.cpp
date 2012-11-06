@@ -18,6 +18,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "platform.hpp"
+
 #include "address.hpp"
 #include "err.hpp"
 #include "tcp_address.hpp"
@@ -42,6 +44,16 @@ zmq::address_t::~address_t ()
             resolved.tcp_addr = 0;
         }
     }
+
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tls") {
+        if (resolved.tcp_addr) {
+            delete resolved.tcp_addr;
+            resolved.tcp_addr = 0;
+        }
+    }
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else if (protocol == "ipc") {
         if (resolved.ipc_addr) {
@@ -59,6 +71,15 @@ int zmq::address_t::to_string (std::string &addr_) const
             return resolved.tcp_addr->to_string(addr_);
         }
     }
+
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tls") {
+        if (resolved.tcp_addr) {
+            return resolved.tcp_addr->to_string(addr_);
+        }
+    }
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else if (protocol == "ipc") {
         if (resolved.ipc_addr) {

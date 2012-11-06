@@ -330,6 +330,63 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
                 return 0;
             }
         }
+
+#ifdef ZMQ_HAVE_TLS
+    case ZMQ_TLS_CA_DIR:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_ca_dir_size = optvallen_;
+        memcpy (tls_ca_dir, optval_, tls_ca_dir_size);
+        return 0;
+
+    case ZMQ_TLS_CA_FILE:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_ca_file_size = optvallen_;
+        memcpy (tls_ca_file, optval_, tls_ca_file_size);
+        return 0;
+
+    case ZMQ_TLS_CERT_DIR:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_cert_dir_size = optvallen_;
+        memcpy (tls_cert_dir, optval_, tls_cert_dir_size);
+        return 0;
+
+    case ZMQ_TLS_CERT_FILE:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_cert_file_size = optvallen_;
+        memcpy (tls_cert_file, optval_, tls_cert_file_size);
+        return 0;
+
+    case ZMQ_TLS_KEY_FILE:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_key_file_size = optvallen_;
+        memcpy (tls_key_file, optval_, tls_key_file_size);
+        return 0;
+
+    case ZMQ_TLS_CERT_PASSWD:
+        if (optvallen_ < 1 || optvallen_ > 255) {
+            errno = EINVAL;
+            return -1;
+        }
+        tls_cert_passwd_size = optvallen_;
+        memcpy (tls_cert_passwd, optval_, tls_cert_passwd_size);
+        return 0;
+#endif
+
     }
     errno = EINVAL;
     return -1;
@@ -555,6 +612,62 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         memcpy (optval_, last_endpoint.c_str(), last_endpoint.size()+1);
         *optvallen_ = last_endpoint.size()+1;
         return 0;
+
+#ifdef ZMQ_HAVE_TLS
+    case ZMQ_TLS_CA_DIR:
+        if (*optvallen_ < tls_ca_dir_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_ca_dir, tls_ca_dir_size);
+        *optvallen_ = tls_ca_dir_size;
+        return 0;
+
+    case ZMQ_TLS_CA_FILE:
+        if (*optvallen_ < tls_ca_file_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_ca_file, tls_ca_file_size);
+        *optvallen_ = tls_ca_file_size;
+        return 0;
+
+    case ZMQ_TLS_CERT_DIR:
+        if (*optvallen_ < tls_cert_dir_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_cert_dir, tls_cert_dir_size);
+        *optvallen_ = tls_cert_dir_size;
+        return 0;
+
+    case ZMQ_TLS_CERT_FILE:
+        if (*optvallen_ < tls_cert_file_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_cert_file, tls_cert_file_size);
+        *optvallen_ = tls_cert_file_size;
+        return 0;
+
+    case ZMQ_TLS_KEY_FILE:
+        if (*optvallen_ < tls_key_file_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_key_file, tls_key_file_size);
+        *optvallen_ = tls_key_file_size;
+        return 0;
+
+    case ZMQ_TLS_CERT_PASSWD:
+        if (*optvallen_ < tls_cert_passwd_size) {
+            errno = EINVAL;
+            return -1;
+        }
+        memcpy (optval_, tls_cert_passwd, tls_cert_passwd_size);
+        *optvallen_ = tls_cert_passwd_size;
+        return 0;
+#endif
     }
 
     errno = EINVAL;

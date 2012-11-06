@@ -460,6 +460,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\..\src\tls_connecter.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\tls_listener.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\..\src\trie.cpp"
 				>
 			</File>
@@ -747,6 +755,14 @@
 			</File>
 			<File
 				RelativePath="..\..\..\src\thread.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\tls_connecter.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\tls_listener.hpp"
 				>
 			</File>
 			<File

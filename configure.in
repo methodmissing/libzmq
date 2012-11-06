@@ -281,6 +281,21 @@ AC_HEADER_TIME
 AC_TYPE_UINT32_T
 AC_C_VOLATILE
 
+#  TLS
+libzmq_tls="no"
+
+AC_CHECK_HEADERS([openssl/ssl.h],
+    [AC_DEFINE([ZMQ_HAVE_OPENSSL], [1], [Have openSSL.])])
+
+AC_ARG_WITH([tls], [AS_HELP_STRING([--with-tls],
+    [build libzmq with TLS support [default=no]])],
+    [with_tls=$withval], [with_tls=no])
+
+AS_IF([test "x$with_tls" != "xno"], [
+    AC_DEFINE([ZMQ_HAVE_TLS], [1], [Have TLS support])
+    libzmq_tls="yes"
+])
+
 #  PGM extension
 libzmq_pgm_ext="no"
 
@@ -373,6 +388,7 @@ if test "x$libzmq_pedantic" = "xyes"; then
 fi
 AC_LANG_POP([C++])
 
+AM_CONDITIONAL(BUILD_TLS, test "x$libzmq_tls" = "xyes")
 AM_CONDITIONAL(BUILD_PGM, test "x$libzmq_pgm_ext" = "xyes")
 AM_CONDITIONAL(ON_MINGW, test "x$libzmq_on_mingw32" = "xyes")
 AM_CONDITIONAL(ON_ANDROID, test "x$libzmq_on_android" = "xyes")

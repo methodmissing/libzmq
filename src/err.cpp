@@ -51,6 +51,22 @@ const char *zmq::errno_to_string (int errno_)
         return "Context was terminated";
     case EMTHREAD:
         return "No thread available";
+#ifdef ZMQ_HAVE_TLS
+    case ESSLRSA:
+        return "SSL: Could not set RSA Key";
+    case ESSLVERIFY:
+        return "SSL: certificate failed verification";
+    case ESSLCA:
+        return "SSL: Unable to load CA certificates";
+    case ESSLCERT:
+        return "SSL: Unable to load certificate";
+    case ESSLKEY:
+        return "SSL: Unable to load certificate key file";
+    case ESSLKEYINVALID:
+        return "SSL: Client certificate/key are inconsistent";
+    case ESSLPASS:
+        return "SSL: Certificate password failed";
+#endif
     default:
 #if defined _MSC_VER
 #pragma warning (push)

@@ -70,6 +70,10 @@ libzmq_la_SOURCES = \
     tcp_connecter.hpp \
     tcp_listener.hpp \
     thread.hpp \
+    tls.hpp \
+    tls_connecter.hpp \
+    tls_listener.hpp \
+    tls_stream_engine.hpp \
     trie.hpp \
     windows.hpp \
     wire.hpp \
@@ -129,6 +133,10 @@ libzmq_la_SOURCES = \
     tcp_connecter.cpp \
     tcp_listener.cpp \
     thread.cpp \
+    tls.cpp \
+    tls_connecter.cpp \
+    tls_listener.cpp \
+    tls_stream_engine.cpp \
     trie.cpp \
     xpub.cpp \
     router.cpp \
@@ -154,6 +162,10 @@ libzmq_la_CXXFLAGS = @LIBZMQ_EXTRA_CXXFLAGS@
 if BUILD_PGM
 libzmq_la_CPPFLAGS = -I$(top_srcdir)/@pgm_srcdir@/include/
 libzmq_la_LIBADD = $(top_srcdir)/@pgm_srcdir@/libpgm_noinst.la
+endif
+
+if BUILD_TLS
+libzmq_la_LDFLAGS += -lssl
 endif
 
 dist-hook:
