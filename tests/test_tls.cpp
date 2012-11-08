@@ -88,19 +88,31 @@ int main (void)
     errno_assert (rc == 0);
     assert (!strcmp ("/a/file", buffer));
 
-    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_PASSWD, "password", 8);
-    errno_assert (rc == 0);
+    rc = zmq_bind (rep, "tls://127.0.0.1:5560");
+    errno_assert (rc == -1);
+    assert (errno == ESSLCA);
 
-    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_FILE, "./ssl/server.crt", 16);
-    errno_assert (rc == 0);
-
-    rc = zmq_setsockopt (rep, ZMQ_TLS_KEY_FILE, "./ssl/server.key", 16);
+    rc = zmq_setsockopt (rep, ZMQ_TLS_CA_FILE, "./ssl/test-ca.crt", 17);
     errno_assert (rc == 0);
 
     rc = zmq_setsockopt (rep, ZMQ_TLS_CA_DIR, "./ssl", 5);
     errno_assert (rc == 0);
 
-    rc = zmq_setsockopt (rep, ZMQ_TLS_CA_FILE, "./ssl/test-ca.crt", 17);
+    rc = zmq_bind (rep, "tls://127.0.0.1:5560");
+    errno_assert (rc == -1);
+    assert (errno == ESSLCERT);
+
+    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_FILE, "./ssl/server.crt", 16);
+    errno_assert (rc == 0);
+
+    rc = zmq_bind (rep, "tls://127.0.0.1:5560");
+    errno_assert (rc == -1);
+    assert (errno == ESSLKEY);
+
+    rc = zmq_setsockopt (rep, ZMQ_TLS_KEY_FILE, "./ssl/server.key", 16);
+    errno_assert (rc == 0);
+
+    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_PASSWD, "password", 8);
     errno_assert (rc == 0);
 
     rc = zmq_bind (rep, "tls://127.0.0.1:5560");
