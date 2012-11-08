@@ -110,10 +110,10 @@ int main (void)
     void *req = zmq_socket (ctx, ZMQ_REQ);
     errno_assert (req);
 
-    rc = zmq_setsockopt (req, ZMQ_TLS_CERT_FILE, "./ssl/server.crt", 16);
+    rc = zmq_setsockopt (req, ZMQ_TLS_CERT_FILE, "./ssl/client.crt", 16);
     errno_assert (rc == 0);
 
-    rc = zmq_setsockopt (req, ZMQ_TLS_KEY_FILE, "./ssl/server.key", 16);
+    rc = zmq_setsockopt (req, ZMQ_TLS_KEY_FILE, "./ssl/client.key", 16);
     errno_assert (rc == 0);
 
     rc = zmq_setsockopt (req, ZMQ_TLS_CA_DIR, "./ssl", 5);
