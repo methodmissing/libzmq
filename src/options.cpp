@@ -338,8 +338,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_ca_dir_size = optvallen_;
+        tls_ca_dir_size = optvallen_ + 1;
         memcpy (tls_ca_dir, optval_, tls_ca_dir_size);
+        tls_ca_dir[tls_ca_dir_size] = 0;
         return 0;
 
     case ZMQ_TLS_CA_FILE:
@@ -347,8 +348,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_ca_file_size = optvallen_;
+        tls_ca_file_size = optvallen_ + 1;
         memcpy (tls_ca_file, optval_, tls_ca_file_size);
+        tls_ca_file[tls_ca_file_size] = 0;
         return 0;
 
     case ZMQ_TLS_CERT_DIR:
@@ -356,8 +358,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_cert_dir_size = optvallen_;
+        tls_cert_dir_size = optvallen_ + 1;
         memcpy (tls_cert_dir, optval_, tls_cert_dir_size);
+        tls_cert_dir[tls_cert_dir_size] = 0;
         return 0;
 
     case ZMQ_TLS_CERT_FILE:
@@ -365,8 +368,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_cert_file_size = optvallen_;
+        tls_cert_file_size = optvallen_ + 1;
         memcpy (tls_cert_file, optval_, tls_cert_file_size);
+        tls_cert_file[tls_cert_file_size] = 0;
         return 0;
 
     case ZMQ_TLS_KEY_FILE:
@@ -374,8 +378,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_key_file_size = optvallen_;
+        tls_key_file_size = optvallen_ + 1;
         memcpy (tls_key_file, optval_, tls_key_file_size);
+        tls_key_file[tls_key_file_size] = 0;
         return 0;
 
     case ZMQ_TLS_CERT_PASSWD:
@@ -383,8 +388,9 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
             errno = EINVAL;
             return -1;
         }
-        tls_cert_passwd_size = optvallen_;
+        tls_cert_passwd_size = optvallen_ + 1;
         memcpy (tls_cert_passwd, optval_, tls_cert_passwd_size);
+        tls_cert_passwd[tls_cert_passwd_size] = 0;
         return 0;
 #endif
 
@@ -616,7 +622,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
 
 #ifdef ZMQ_HAVE_TLS
     case ZMQ_TLS_CA_DIR:
-        if (*optvallen_ < tls_ca_dir_size) {
+        if (*optvallen_ + 1 < tls_ca_dir_size) {
             errno = EINVAL;
             return -1;
         }
@@ -625,7 +631,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         return 0;
 
     case ZMQ_TLS_CA_FILE:
-        if (*optvallen_ < tls_ca_file_size) {
+        if (*optvallen_ + 1 < tls_ca_file_size) {
             errno = EINVAL;
             return -1;
         }
@@ -634,7 +640,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         return 0;
 
     case ZMQ_TLS_CERT_DIR:
-        if (*optvallen_ < tls_cert_dir_size) {
+        if (*optvallen_ + 1 < tls_cert_dir_size) {
             errno = EINVAL;
             return -1;
         }
@@ -643,7 +649,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         return 0;
 
     case ZMQ_TLS_CERT_FILE:
-        if (*optvallen_ < tls_cert_file_size) {
+        if (*optvallen_ + 1 < tls_cert_file_size) {
             errno = EINVAL;
             return -1;
         }
@@ -652,7 +658,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         return 0;
 
     case ZMQ_TLS_KEY_FILE:
-        if (*optvallen_ < tls_key_file_size) {
+        if (*optvallen_ + 1 < tls_key_file_size) {
             errno = EINVAL;
             return -1;
         }
@@ -661,7 +667,7 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         return 0;
 
     case ZMQ_TLS_CERT_PASSWD:
-        if (*optvallen_ < tls_cert_passwd_size) {
+        if (*optvallen_ + 1 < tls_cert_passwd_size) {
             errno = EINVAL;
             return -1;
         }
