@@ -1,5 +1,5 @@
-zmq_ctx_socket_monitor(3)
-=========================
+zmq_socket_monitor(3)
+=====================
 
 
 NAME
@@ -17,7 +17,7 @@ DESCRIPTION
 -----------
 The _zmq_socket_monitor()_ function shall spawn a 'PAIR' socket that publishes
 socket state changes (events) over the inproc:// transport to a given endpoint.
-Messages are 'zmq_event_t' structs. It's recommended to connect via a 'PAIR'
+Messages are 'zmq_event_t' structs. It's required to connect via a 'PAIR'
 socket in another application thread and handle monitoring events there. It's
 possible to also supply a bitmask ('ZMQ_EVENT_ALL' or any combination of the
 'ZMQ_EVENT_*' constants) of the events you're interested in.
@@ -26,21 +26,16 @@ possible to also supply a bitmask ('ZMQ_EVENT_ALL' or any combination of the
 // monitoring thread
 static void *req_socket_monitor (void *ctx)
 {
-    zmq_event_t event;
-    int rc;
-
     void *s = zmq_socket (ctx, ZMQ_PAIR);
     assert (s);
 
-    rc = zmq_connect (s, "inproc://monitor.req");
+    int rc = zmq_connect (s, "inproc://monitor.req");
     assert (rc == 0);
     while (true) {
-        zmq_msg_t msg;
-        zmq_msg_init (&msg);
-        rc = zmq_recvmsg (s, &msg, 0);
+        zmq_event_t event;
+        rc = zmq_event_recv (&event, s, 0);
         if (rc == -1 && zmq_errno() == ETERM) break;
         assert (rc != -1);
-        memcpy (&event, zmq_msg_data (&msg), sizeof (event));
         switch (event.event) {
         case ZMQ_EVENT_CONNECTED:
             // handle socket connected event
@@ -49,6 +44,7 @@ static void *req_socket_monitor (void *ctx)
             // handle socket closed event
             break;
         }
+        zmq_event_close (&event);
     }
     zmq_close (s);
     return NULL;
@@ -206,21 +202,16 @@ EXAMPLE
 // REP socket monitor thread
 static void *rep_socket_monitor (void *ctx)
 {
-    zmq_event_t event;
-    int rc;
-
     void *s = zmq_socket (ctx, ZMQ_PAIR);
     assert (s);
 
-    rc = zmq_connect (s, "inproc://monitor.rep");
+    int rc = zmq_connect (s, "inproc://monitor.rep");
     assert (rc == 0);
     while (true) {
-        zmq_msg_t msg;
-        zmq_msg_init (&msg);
-        rc = zmq_recvmsg (s, &msg, 0);
+        zmq_event_t event;
+        rc = zmq_event_recv (&event, s, 0);
         if (rc == -1 && zmq_errno() == ETERM) break;
         assert (rc != -1);
-        memcpy (&event, zmq_msg_data (&msg), sizeof (event));
         switch (event.event) {
         case ZMQ_EVENT_LISTENING:
             printf ("listening socket descriptor %d\n", event.data.listening.fd);
@@ -243,7 +234,8 @@ static void *rep_socket_monitor (void *ctx)
             printf ("disconnected socket address %s\n", event.data.disconnected.addr);
             break;
         }
-        zmq_msg_close (&msg);
+        rc = zmq_event_close (&event);
+        assert (rc != -1);
     }
     zmq_close (s);
     return NULL;
@@ -280,6 +272,8 @@ zmq_term (ctx);
 
 SEE ALSO
 --------
+linkzmq:zmq_event_recv[3]
+linkzmq:zmq_event_close[3]
 linkzmq:zmq[7]
 
 

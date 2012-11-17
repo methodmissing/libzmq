@@ -286,6 +286,82 @@ int zmq_socket_monitor (void *s_, const char *addr_, int events_)
     return result;
 }
 
+int zmq_event_recv(zmq_event_t *event_, void *s_, int flags)
+{
+    zmq_msg_t msg;
+    int type;
+
+    if (event_ == NULL) {
+        errno = EFAULT;
+        return -1;
+    }
+
+    size_t option_len = sizeof (int);
+    int result = zmq_getsockopt (s_, ZMQ_TYPE, &type, &option_len);
+    if (result == -1)
+        return -1;
+
+    if (type != ZMQ_PAIR){
+        errno = ENOTSUP;
+        return -1;
+    }
+
+    zmq_msg_init (&msg);
+    result = zmq_msg_recv (&msg, s_, flags);
+    if (result == -1) {
+        zmq_msg_close (&msg);
+        return -1;
+    }
+
+    memcpy (event_, zmq_msg_data (&msg), sizeof (zmq_event_t));
+    zmq_msg_close (&msg);
+    return result;
+}
+
+int zmq_event_close (zmq_event_t *event_)
+{
+    if (event_ == NULL) {
+        errno = EFAULT;
+        return -1;
+    }
+
+    switch (event_->event) {
+    case ZMQ_EVENT_CONNECTED:
+        free (event_->data.connected.addr);
+        break;
+    case ZMQ_EVENT_CONNECT_DELAYED:
+        free (event_->data.connect_delayed.addr);
+        break;
+    case ZMQ_EVENT_CONNECT_RETRIED:
+        free (event_->data.connect_retried.addr);
+        break;
+    case ZMQ_EVENT_LISTENING:
+        free (event_->data.listening.addr);
+        break;
+    case ZMQ_EVENT_BIND_FAILED:
+        free (event_->data.bind_failed.addr);
+        break;
+    case ZMQ_EVENT_ACCEPTED:
+        free (event_->data.accepted.addr);
+        break;
+    case ZMQ_EVENT_ACCEPT_FAILED:
+        free (event_->data.accept_failed.addr);
+        break;
+    case ZMQ_EVENT_CLOSED:
+        free (event_->data.closed.addr);
+        break;
+    case ZMQ_EVENT_CLOSE_FAILED:
+        free (event_->data.close_failed.addr);
+        break;
+    case ZMQ_EVENT_DISCONNECTED:
+        free (event_->data.disconnected.addr);
+        break;
+    default:
+        return -1;
+    }
+    return 0;
+}
+
 int zmq_bind (void *s_, const char *addr_)
 {
     if (!s_ || !((zmq::socket_base_t*) s_)->check_tag ()) {

@@ -141,6 +141,11 @@ Sending and receiving messages::
     linkzmq:zmq_send[3]
     linkzmq:zmq_recv[3]
 
+Monitoring sockets
+    linkzmq:zmq_socket_monitor[3]
+    linkzmq:zmq_event_recv[3]
+    linkzmq:zmq_event_close[3]
+
 .Input/output multiplexing
 0MQ provides a mechanism for applications to multiplex input/output events over
 a set containing both 0MQ sockets and standard sockets. This mechanism mirrors

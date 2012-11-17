@@ -1,0 +1,88 @@
+zmq_event_recv(3)
+=================
+
+
+NAME
+----
+zmq_event_recv - receive a monitoring event from a socket
+
+
+SYNOPSIS
+--------
+*int zmq_event_recv (zmq_event_t '*event', void '*socket', int 'flags');*
+
+
+DESCRIPTION
+-----------
+The _zmq_event_recv()_ function shall receive a monitor event from the socket
+referenced by the 'socket' argument and store it in an  event struct referenced
+by the 'event' argument. If there are no events available on the specified
+'socket' the _zmq_event_recv()_ function shall block until the request can be
+satisfied. The 'flags' argument is a combination of the flags defined below:
+
+*ZMQ_DONTWAIT*::
+Specifies that the operation should be performed in non-blocking mode. If there
+are no events available on the specified 'socket', the _zmq_event_recv()_
+function shall fail with 'errno' set to EAGAIN.
+
+
+RETURN VALUE
+------------
+The _zmq_event_recv()_ function shall return number of bytes in the event
+message if successful. Otherwise it shall return `-1` and set 'errno' to one of
+the values defined below.
+
+
+ERRORS
+------
+*EAGAIN*::
+Non-blocking mode was requested and no events are available at the moment.
+*ENOTSUP*::
+The _zmq_event_recv()_ operation is not supported by this socket type.
+*ETERM*::
+The 0MQ 'context' associated with the specified 'socket' was terminated.
+*ENOTSOCK*::
+The provided 'socket' was invalid.
+*EINTR*::
+The operation was interrupted by delivery of a signal before a message was
+available.
+*EFAULT*::
+The event structure passed to the function was invalid.
+
+
+EXAMPLE
+-------
+.Receiving an event from a PAIR socket
+----
+void *s = zmq_socket (ctx, ZMQ_PAIR);
+assert (s);
+int rc = zmq_connect (s, "inproc://monitor.rep");
+assert (rc == 0);
+while (true) {
+    zmq_event_t event;
+    rc = zmq_event_recv (&event, s, 0);
+    if (rc == -1 && zmq_errno() == ETERM) break;
+    assert (rc != -1);
+    switch (event.event) {
+    case ZMQ_EVENT_LISTENING:
+        printf ("listening socket descriptor %d\n", event.data.listening.fd);
+        printf ("listening socket address %s\n", event.data.listening.addr);
+        break;
+    }
+    rc = zmq_event_close (&event);
+    assert (rc != -1);
+}
+zmq_close (s);
+----
+
+
+SEE ALSO
+--------
+linkzmq:zmq_socket_monitor[3]
+linkzmq:zmq_event_close[3]
+linkzmq:zmq[7]
+
+
+AUTHORS
+-------
+This 0MQ manual page was written by Lourens Naudé <lourens@methodmissing.com>
