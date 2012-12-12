@@ -33,12 +33,28 @@
 
 namespace zmq
 {
+    class tls_stream_engine_t;
 
-    int tls_password_callback (char* buffer_, int num_, int rwflag_, void* userdata_);
+    int tls_password_callback (char* buffer_, int num_, int rwflag_, void *userdata_);
 
     int tls_verify_callback (int ok_, X509_STORE_CTX* store_);
 
-    void print_ssl_err ();
+    void print_tls_err ();
+
+    int tls_stream_write (BIO* b_, const char* buf_, int num_);
+
+    int tls_stream_read (BIO* b_, char* buf_, int size_);
+
+    int tls_stream_puts (BIO* b_, const char* str_);
+
+    long tls_stream_ctrl (BIO* b_, int cmd_, long arg1_, void *arg2_);
+
+    int tls_stream_new (BIO* b_);
+
+    int tls_stream_free (BIO* data_);
+
+    BIO *BIO_new_stream (tls_stream_engine_t *engine_);
+
 }
 
 #endif

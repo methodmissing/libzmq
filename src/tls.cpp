@@ -24,14 +24,15 @@
 #if defined ZMQ_HAVE_TLS
 
 #include "tls.hpp"
+#include "tls_stream_engine.hpp"
 
 namespace zmq
 {
 
     int tls_password_callback (char* buffer_, int num_, int rwflag_, void* userdata_) {
         char *cert_passwd = (char*) userdata_;
-        if ((!cert_passwd) || num_ < (strlen (cert_passwd) + 1)) {
-            errno = ESSLPASS;
+        if ((!cert_passwd) || num_ < (int)(strlen (cert_passwd) + 1)) {
+            errno = ETLSPASS;
             return 0;
         }
         strcpy (buffer_, cert_passwd);
@@ -40,12 +41,116 @@ namespace zmq
 
     int tls_verify_callback (int ok_, X509_STORE_CTX* store_) {
         if (!ok_)
-            errno = ESSLCERT;
+            errno = ETLSCERT;
 
          return ok_;
     }
 
-    void print_ssl_err ()
+    static BIO_METHOD tls_methods_stream = {
+      BIO_TYPE_BIO,
+      "stream",
+      tls_stream_write,
+      tls_stream_read,
+      tls_stream_puts,
+      0,
+      tls_stream_ctrl,
+      tls_stream_new,
+      tls_stream_free,
+      NULL,
+    };
+
+    BIO_METHOD* BIO_s_stream() { return (&tls_methods_stream); }
+
+    int tls_stream_write (BIO* b_, const char* buf_, int size_)
+    {
+        if (!buf_)
+            return -1;
+        zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);
+        BIO_clear_retry_flags (b_);
+        int nbytes = engine->write_plaintext (buf_, size_);
+        if (nbytes > 0) {
+            return nbytes;
+        } else if (nbytes == -1) {
+            b_->num = 1;
+#ifdef ZMQ_HAVE_WINDOWS
+        } else if (nbytes == 0 && WSAGetLastError () == WSAEWOULDBLOCK) {
+#else
+        } else if (nbytes == 0 && errno == EAGAIN) {
+#endif
+            BIO_set_retry_write (b_);
+        }
+        return -1;
+    }
+
+    int tls_stream_read (BIO* b_, char* buf_, int size_)
+    {
+        if (!buf_)
+            return -1;
+        zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);
+        BIO_clear_retry_flags (b_);
+        int nbytes = engine->read_plaintext (buf_, size_);
+        if (nbytes > 0) {
+            return nbytes;
+        } else if (nbytes == -1) {
+            b_->num = 1;
+#ifdef ZMQ_HAVE_WINDOWS
+        } else if (nbytes == 0 && WSAGetLastError () == WSAEWOULDBLOCK) {
+#else
+        } else if (nbytes == 0 && errno == EAGAIN) {
+#endif
+            BIO_set_retry_read (b_);
+        }
+        return -1;
+    }
+
+    int tls_stream_puts (BIO* b_, const char *str_)
+    {
+        return tls_stream_write (b_, str_, strlen (str_));
+    }
+
+    long tls_stream_ctrl (BIO* b_, int cmd_, long arg1_, void *arg2_)
+    {
+        switch (cmd_) {
+        case BIO_CTRL_RESET:
+             return 0;
+        case BIO_CTRL_EOF:
+             return b_->num;
+        case BIO_CTRL_WPENDING:
+        case BIO_CTRL_PENDING:
+             return 0;
+        case BIO_CTRL_FLUSH:
+             return 1;
+        default:
+             return 0;
+        }
+    }
+
+    int tls_stream_new (BIO* b_)
+    {
+        b_->shutdown = 0;
+        b_->init = 1;
+        b_->num = 0;
+        b_->ptr = 0;
+        return 1;
+    }
+
+    int tls_stream_free (BIO* b_)
+    {
+        if (b_ == NULL)  
+            return 0;
+        return 1;
+    }
+
+    BIO *BIO_new_stream (zmq::tls_stream_engine_t *engine_)
+    {
+        BIO* ret = BIO_new (BIO_s_stream ());
+        if (ret == NULL)
+            return NULL;
+        ret->ptr = engine_;
+        return ret;
+    }
+
+    void print_tls_err ()
     {
         int err;
         while ((err = ERR_get_error())) {

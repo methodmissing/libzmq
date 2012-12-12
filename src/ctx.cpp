@@ -58,6 +58,7 @@ zmq::ctx_t::ctx_t () :
     SSL_library_init();
     SSL_load_error_strings();
     ERR_load_BIO_strings();
+    OpenSSL_add_ssl_algorithms();
     OpenSSL_add_all_algorithms();
 #endif
 }

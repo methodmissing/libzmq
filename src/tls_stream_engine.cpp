@@ -32,186 +32,166 @@
 
 #include "tls_stream_engine.hpp"
 
-zmq::tls_stream_engine_t::tls_stream_engine_t (SSL *ssl_, const options_t &options_, const std::string &endpoint_) :
+zmq::tls_stream_engine_t::tls_stream_engine_t (SSL *ssl_, bool listener_, const options_t &options_, const std::string &endpoint_) :
     stream_engine_t (SSL_get_fd (ssl_), options_, endpoint_),
-    ssl (ssl_)
+    ssl (ssl_),
+    listener (listener_),
+    tls_read_needs_write (false),
+    tls_write_needs_read (false)
 {
+    tls_init ();
+}
+
+void zmq::tls_stream_engine_t::tls_init ()
+{
+    SSL_set_app_data (ssl, this);
+
+    BIO *bio = BIO_new_stream (static_cast<zmq::tls_stream_engine_t *>(this));
+    if (!bio) {
+        error ();
+        return;
+    }
+
+    BIO_set_nbio (bio, 1);
+    SSL_set_mode (ssl, SSL_MODE_ENABLE_PARTIAL_WRITE | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+    SSL_set_bio (ssl, bio, bio);
+
+    bio = NULL;
+
+    if (listener) {
+      SSL_set_accept_state (ssl);
+    } else {
+      SSL_set_connect_state (ssl);
+    }
+
+    tls_handshake ();
 }
 
 zmq::tls_stream_engine_t::~tls_stream_engine_t ()
 {
 }
 
+int zmq::tls_stream_engine_t::tls_handshake ()
+{
+    int rc;
+    if (SSL_is_init_finished (ssl))
+        return 0;
+
+    if (listener) {
+      rc = SSL_accept (ssl);
+    } else {
+      rc = SSL_connect (ssl);
+    }
+
+    switch (SSL_get_error (ssl, rc)) {
+    case SSL_ERROR_NONE:
+         break;
+    case SSL_ERROR_WANT_READ:
+         break;
+    case SSL_ERROR_WANT_WRITE:
+         break;
+    case SSL_ERROR_ZERO_RETURN:
+    default:
+         return (rc != 0) ? rc : -1;
+      }
+
+    return 0;
+}
+
+int zmq::tls_stream_engine_t::write_plaintext (const void *data_, size_t size_)
+{
+    return zmq::stream_engine_t::write (data_, size_);
+}
+
+int zmq::tls_stream_engine_t::read_plaintext (void *data_, size_t size_)
+{
+    return zmq::stream_engine_t::read (data_, size_);
+}
+
 int zmq::tls_stream_engine_t::write (const void *data_, size_t size_)
 {
-    int err;
-    ERR_clear_error();
-    ssize_t nbytes = SSL_write (ssl, data_, size_);
-
-    if (nbytes < 0){
-        switch (err = SSL_get_error (ssl, nbytes)) {
-        case SSL_ERROR_WANT_READ:
-#ifdef ZMQ_HAVE_WINDOWS
-            WSASetLastError (WSAEWOULDBLOCK);
-#else
-            errno = EAGAIN;
-#endif
-            nbytes = -1;
-            break;
-        case SSL_ERROR_WANT_WRITE:
-#ifdef ZMQ_HAVE_WINDOWS
-            WSASetLastError (WSAEWOULDBLOCK);
-#else
-            errno = EAGAIN;
-#endif
-            nbytes = -1;
-            break;
-         case SSL_ERROR_SYSCALL:
-            if (ERR_get_error () == 0)
-                return -1;
-            break;
-         case SSL_ERROR_ZERO_RETURN:
-            return -1;
-         default:
-            break;
-         }
-    }
-
-#ifdef ZMQ_HAVE_WINDOWS
-
-    //  If not a single byte can be written to the socket in non-blocking mode
-    //  we'll get an error (this may happen during the speculative write).
-    if (nbytes == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK)
-        return 0;
-		
-    //  Signalise peer failure.
-    if (nbytes == SOCKET_ERROR && (
-          WSAGetLastError () == WSAENETDOWN ||
-          WSAGetLastError () == WSAENETRESET ||
-          WSAGetLastError () == WSAEHOSTUNREACH ||
-          WSAGetLastError () == WSAECONNABORTED ||
-          WSAGetLastError () == WSAETIMEDOUT ||
-          WSAGetLastError () == WSAECONNRESET))
-        return -1;
-
-    wsa_assert (nbytes != SOCKET_ERROR);
-    return nbytes;
-
-#else
-
-    //  Several errors are OK. When speculative write is being done we may not
-    //  be able to write a single byte from the socket. Also, SIGSTOP issued
-    //  by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
-          errno == EINTR))
+    if (size_ == 0)
         return 0;
 
-    //  Signalise peer failure.
-    if (nbytes == -1) {
-        errno_assert (errno != EACCES
-                   && errno != EBADF
-                   && errno != EDESTADDRREQ
-                   && errno != EFAULT
-                   && errno != EINVAL
-                   && errno != EISCONN
-                   && errno != EMSGSIZE
-                   && errno != ENOMEM
-                   && errno != ENOTSOCK
-                   && errno != EOPNOTSUPP);
-        return -1;
+    tls_write_needs_read = false;
+
+    int nbytes = SSL_write (ssl, data_, size_);
+    switch (SSL_get_error (ssl, nbytes)) {
+    case SSL_ERROR_NONE:
+         return nbytes;
+    case SSL_ERROR_WANT_READ:
+         tls_write_needs_read = true;
+         errno = EAGAIN;
+         break;
+    case SSL_ERROR_WANT_WRITE:
+         errno = EAGAIN;
+         break;
+    case SSL_ERROR_ZERO_RETURN:
+         errno = EAGAIN;
+         break;
+    default:
+         break;
     }
 
-    return (size_t) nbytes;
-
-#endif
+  return 0;
 }
 
 int zmq::tls_stream_engine_t::read (void *data_, size_t size_)
 {
-    int err;
-    ERR_clear_error();
-    ssize_t nbytes = SSL_read (ssl, data_, size_);
-
-    if (nbytes <= 0){
-        switch (err = SSL_get_error (ssl, nbytes)) {
-        case SSL_ERROR_WANT_READ:
-#ifdef ZMQ_HAVE_WINDOWS
-            WSASetLastError (WSAEWOULDBLOCK);
-#else
-            errno = EAGAIN;
-#endif
-            nbytes = -1;
-            break;
-        case SSL_ERROR_WANT_WRITE:
-#ifdef ZMQ_HAVE_WINDOWS
-            WSASetLastError (WSAEWOULDBLOCK);
-#else
-            errno = EAGAIN;
-#endif
-            nbytes = -1;
-            break;
-         case SSL_ERROR_SYSCALL:
-            if (ERR_get_error () == 0)
-                return -1;
-            break;
-         case SSL_ERROR_ZERO_RETURN:
-            return -1;
-         default:
-            break;
-         }
-    }
-
-#ifdef ZMQ_HAVE_WINDOWS
-
-    //  If not a single byte can be read from the socket in non-blocking mode
-    //  we'll get an error (this may happen during the speculative read).
-    if (nbytes == SOCKET_ERROR && WSAGetLastError () == WSAEWOULDBLOCK)
+    if (size_ == 0)
         return 0;
 
-    //  Connection failure.
-    if (nbytes == SOCKET_ERROR && (
-          WSAGetLastError () == WSAENETDOWN ||
-          WSAGetLastError () == WSAENETRESET ||
-          WSAGetLastError () == WSAECONNABORTED ||
-          WSAGetLastError () == WSAETIMEDOUT ||
-          WSAGetLastError () == WSAECONNRESET ||
-          WSAGetLastError () == WSAECONNREFUSED ||
-          WSAGetLastError () == WSAENOTCONN))
-        return -1;
+    tls_read_needs_write = false;
 
-    wsa_assert (nbytes != SOCKET_ERROR);
-
-    //  Orderly shutdown by the other peer.
-    if (nbytes == 0)
-        return -1; 
-
-    return nbytes;
-
-#else
-    //  Several errors are OK. When speculative read is being done we may not
-    //  be able to read a single byte from the socket. Also, SIGSTOP issued
-    //  by a debugging tool can result in EINTR error.
-    if (nbytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK ||
-          errno == EINTR))
-        return 0;
-
-    //  Signalise peer failure.
-    if (nbytes == -1) {
-        errno_assert (errno != EBADF
-                   && errno != EFAULT
-                   && errno != EINVAL
-                   && errno != ENOMEM
-                   && errno != ENOTSOCK);
-        return -1;
+    int nbytes = SSL_read (ssl, data_, size_);
+    switch (SSL_get_error (ssl, nbytes)) {
+    case SSL_ERROR_NONE:
+         return nbytes;
+    case SSL_ERROR_WANT_READ:
+         errno = EAGAIN;
+         break;
+    case SSL_ERROR_WANT_WRITE:
+         tls_read_needs_write = true;
+         errno = EAGAIN;
+         break;
+    case SSL_ERROR_ZERO_RETURN:
+         errno = EAGAIN;
+         break;
+    default:
+         break;
     }
 
-    //  Orderly shutdown by the peer.
-    if (nbytes == 0)
-        return -1;
+    return 0;
+}
 
-    return (size_t) nbytes;
+void zmq::tls_stream_engine_t::in_event ()
+{
+    if (tls_handshake () != 0)
+        return;
 
-#endif
+    if (!SSL_is_init_finished (ssl))
+        return;
+
+    if (tls_write_needs_read)  {
+        zmq::stream_engine_t::out_event ();
+    }
+
+    zmq::stream_engine_t::in_event ();
+}
+
+void zmq::tls_stream_engine_t::out_event ()
+{
+    if (tls_handshake () != 0)
+        return;
+
+    if (!SSL_is_init_finished (ssl))
+        return;
+
+    if (tls_read_needs_write)  {
+        zmq::stream_engine_t::in_event ();
+    }
+
+    zmq::stream_engine_t::out_event ();
 }
 
 #endif

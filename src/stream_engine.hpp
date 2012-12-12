@@ -61,8 +61,8 @@ namespace zmq
         virtual int push_msg (msg_t *msg_);
 
         //  i_poll_events interface implementation.
-        void in_event ();
-        void out_event ();
+        virtual void in_event ();
+        virtual void out_event ();
 
     protected:
 
@@ -80,10 +80,12 @@ namespace zmq
         //  Function to handle network disconnections.
         void error ();
 
+    private:
+
         //  Underlying socket.
         fd_t s;
 
-    private:
+        handle_t handle;
 
         //  Unplug the engine from the session.
         void unplug ();
@@ -97,8 +99,6 @@ namespace zmq
         //  Size of the greeting message:
         //  Preamble (10 bytes) + version (1 byte) + socket type (1 byte).
         const static size_t greeting_size = 12;
-
-        handle_t handle;
 
         unsigned char *inpos;
         size_t insize;

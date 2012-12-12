@@ -52,20 +52,26 @@ const char *zmq::errno_to_string (int errno_)
     case EMTHREAD:
         return "No thread available";
 #ifdef ZMQ_HAVE_TLS
-    case ESSLRSA:
-        return "SSL: Could not set RSA Key";
-    case ESSLVERIFY:
-        return "SSL: certificate failed verification";
-    case ESSLCA:
-        return "SSL: Unable to load CA certificates";
-    case ESSLCERT:
-        return "SSL: Unable to load certificate";
-    case ESSLKEY:
-        return "SSL: Unable to load certificate key file";
-    case ESSLKEYINVALID:
-        return "SSL: Client certificate/key are inconsistent";
-    case ESSLPASS:
-        return "SSL: Certificate password failed";
+    case ETLSRSA:
+        return "TLS: Could not set RSA Key";
+    case ETLSVERIFY:
+        return "TLS: certificate failed verification";
+    case ETLSCA:
+        return "TLS: Unable to load CA certificates";
+    case ETLSCERT:
+        return "TLS: Unable to load certificate";
+    case ETLSKEY:
+        return "TLS: Unable to load certificate key file";
+    case ETLSKEYINVALID:
+        return "TLS: Client certificate/key are inconsistent";
+    case ETLSPASS:
+        return "TLS: Certificate password failed";
+    case ETLSCTX:
+        return "TLS: Could not create context";
+    case ETLSCIPHER:
+        return "TLS: Could not set ciphers";
+    case ETLS:
+        return "TLS: Could not create SSL object";
 #endif
     default:
 #if defined _MSC_VER

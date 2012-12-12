@@ -39,8 +39,16 @@ namespace zmq
 
     public:
 
-        tls_stream_engine_t (SSL *ssl_, const options_t &options_, const std::string &endpoint);
+        tls_stream_engine_t (SSL *ssl_, bool server, const options_t &options_, const std::string &endpoint);
         ~tls_stream_engine_t ();
+
+        //  i_poll_events interface implementation.
+        void in_event ();
+        void out_event ();
+
+        int write_plaintext (const void *data_, size_t size_);
+
+        int read_plaintext (void *data_, size_t size_);
 
     protected:
 
@@ -55,11 +63,18 @@ namespace zmq
         //  peer -1 is returned.
         int read (void *data_, size_t size_);
 
-        int setup_tls ();
-
     private:
 
-        SSL*  ssl;
+        void tls_init ();
+
+        int tls_handshake ();
+
+        SSL *ssl;
+
+        bool listener;
+
+        bool tls_read_needs_write;
+        bool tls_write_needs_read;
 
         tls_stream_engine_t (const stream_engine_t&);
         const tls_stream_engine_t &operator = (const tls_stream_engine_t&);

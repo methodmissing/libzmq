@@ -63,8 +63,8 @@ zmq::tls_listener_t::tls_listener_t (io_thread_t *io_thread_,
 zmq::tls_listener_t::~tls_listener_t ()
 {
     zmq_assert (s == retired_fd);
-    zmq_assert (ssl_ctx == NULL);
     zmq_assert (ssl == NULL);
+    zmq_assert (ssl_ctx == NULL);
 }
 
 void zmq::tls_listener_t::in_event ()
@@ -81,11 +81,9 @@ void zmq::tls_listener_t::in_event ()
     tune_tcp_socket (fd);
     tune_tcp_keepalives (fd, options.tcp_keepalive, options.tcp_keepalive_cnt, options.tcp_keepalive_idle, options.tcp_keepalive_intvl);
 
-    if (tls_accept (fd) != 0)
-        return;
-
+    SSL_set_fd (ssl, fd);
     //  Create the engine object for this connection.
-    tls_stream_engine_t *engine = new (std::nothrow) tls_stream_engine_t (ssl, options, endpoint);
+    tls_stream_engine_t *engine = new (std::nothrow) tls_stream_engine_t (ssl, true, options, endpoint);
     alloc_assert (engine);
 
     //  Choose I/O thread to run connecter in. Given that we are already
@@ -105,8 +103,21 @@ void zmq::tls_listener_t::in_event ()
 
 void zmq::tls_listener_t::close ()
 {
+    if (ssl) {
+        if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
+            SSL_shutdown (ssl);
+        else
+            SSL_clear (ssl);
+        SSL_free (ssl);
+        ssl = NULL;
+    }
+
+    if (ssl_ctx) {
+        SSL_CTX_free (ssl_ctx);
+        ssl_ctx = NULL;
+    }
+
     tcp_listener_t::close ();
-    tls_terminate ();
 }
 
 int zmq::tls_listener_t::set_address (const char *addr_)
@@ -123,116 +134,80 @@ error:
     return -1;
 }
 
-int zmq::tls_listener_t::tls_accept (fd_t fd_)
-{
-    int rc;
-
-    SSL_set_app_data (ssl, this);
-    SSL_set_accept_state (ssl);
-    SSL_set_mode (ssl, SSL_MODE_AUTO_RETRY);
-
-    rc = SSL_set_fd (ssl, fd_);
-    if (rc != 1) {
-        print_ssl_err ();
-        return -1;
-    }
-
-    if (SSL_get_verify_result (ssl) != X509_V_OK) {
-        print_ssl_err ();
-        errno = ESSLVERIFY;
-        return -1;
-    }
-    return 0;
-}
-
 int zmq::tls_listener_t::tls_init ()
 {
     int rc;
+    ssl_ctx = SSL_CTX_new ( SSLv23_server_method() );
+    if (!ssl_ctx) {
+        errno = ETLSCTX;
+        return -1;
+    }
+
+    SSL_CTX_set_options (ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+
+    rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+    if (rc == 0) {
+        errno = ETLSCIPHER;
+        return -1;
+    }
+
     if (options.tls_ca_file || options.tls_ca_dir) {
-        ssl_ctx = SSL_CTX_new ( SSLv3_server_method() );
-        if (!ssl_ctx) {
-            print_ssl_err ();
-            return -1;
-        }
-
-        rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-        if (rc == 0) {
-            print_ssl_err ();
-            return -1;
-        }
-
         if (options.tls_ca_file) {
             rc = SSL_CTX_load_verify_locations (ssl_ctx, (const char*)options.tls_ca_file, NULL);
         } else {
             rc = SSL_CTX_load_verify_locations (ssl_ctx, NULL, (const char*)options.tls_ca_dir);
         }
         if (rc == 0) {
-            print_ssl_err ();
-            errno = ESSLCA;
+            errno = ETLSCA;
+            return -1;
+        }
+    }
+
+#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
+    SSL_CTX_set_verify_depth (ssl_ctx, 1);
+#endif
+    SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
+    SSL_CTX_set_read_ahead (ssl_ctx, 1);
+
+    if (options.tls_cert_file) {
+        rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
+        if (rc != 1) {
+            errno = ETLSCERT;
+            return -1;
+        }
+    }
+
+    if (options.tls_key_file) {
+        rc = SSL_CTX_use_PrivateKey_file (ssl_ctx, (const char*)options.tls_key_file, SSL_FILETYPE_PEM);
+        if (rc != 1) {
+            errno = ETLSKEY;
             return -1;
         }
 
-        SSL_CTX_set_verify_depth (ssl_ctx, 1);
-        SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
-
-        if (options.tls_cert_file) {
-            rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
-            if (rc != 1) {
-                print_ssl_err ();
-                errno = ESSLCERT;
-                return -1;
-            }
-        }
-
-        if (options.tls_key_file) {
-            rc = SSL_CTX_use_PrivateKey_file (ssl_ctx, (const char*)options.tls_key_file, SSL_FILETYPE_PEM);
-            if (rc != 1) {
-                print_ssl_err ();
-                errno = ESSLKEY;
-                return -1;
-            }
-
-            rc = SSL_CTX_check_private_key(ssl_ctx);
-            if (rc != 1) {
-                print_ssl_err ();
-                errno = ESSLKEYINVALID;
-                return -1;
-            }
-        }
-
-        RSA *rsa = RSA_generate_key (1024, RSA_F4, NULL, NULL);
-
-        if (!SSL_CTX_set_tmp_rsa (ssl_ctx, rsa)) {
-            print_ssl_err ();
-            RSA_free (rsa);
-            errno = ESSLRSA;
+        rc = SSL_CTX_check_private_key(ssl_ctx);
+        if (rc != 1) {
+            errno = ETLSKEYINVALID;
             return -1;
         }
+    }
 
+    RSA *rsa = RSA_generate_key (1024, RSA_F4, NULL, NULL);
+
+    if (!SSL_CTX_set_tmp_rsa (ssl_ctx, rsa)) {
         RSA_free (rsa);
+        errno = ETLSRSA;
+        return -1;
+    }
 
-        ssl = SSL_new (ssl_ctx);
-        if (!ssl) {
-            print_ssl_err ();
-            return -1;
-        }
+    RSA_free (rsa);
+
+    ssl = SSL_new (ssl_ctx);
+    if (!ssl) {
+        errno = ETLS;
+        return -1;
     }
 
     return 0;
-}
-
-void zmq::tls_listener_t::tls_terminate ()
-{
-    if (ssl) {
-        SSL_shutdown (ssl);
-        SSL_free (ssl);
-        ssl = NULL;
-    }
-
-    if (ssl_ctx) {
-        SSL_CTX_free (ssl_ctx);
-        ssl_ctx = NULL;
-    }
 }
 
 #endif

@@ -529,19 +529,11 @@ int zmq::socket_base_t::connect (const char *addr_)
     alloc_assert (paddr);
 
     //  Resolve address (if needed by the protocol)
-    if (protocol == "tcp") {
-        paddr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
-        alloc_assert (paddr->resolved.tcp_addr);
-        int rc = paddr->resolved.tcp_addr->resolve (
-            address.c_str (), false, options.ipv4only ? true : false);
-        if (rc != 0) {
-            delete paddr;
-            return -1;
-        }
-    }
-
 #ifdef ZMQ_HAVE_TLS
-    if (protocol == "tls") {
+    if (protocol == "tcp" || protocol == "tls") {
+#else
+    if (protocol == "tcp") {
+#endif
         paddr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
         alloc_assert (paddr->resolved.tcp_addr);
         int rc = paddr->resolved.tcp_addr->resolve (
@@ -551,7 +543,6 @@ int zmq::socket_base_t::connect (const char *addr_)
             return -1;
         }
     }
-#endif
 
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else

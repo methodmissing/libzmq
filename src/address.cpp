@@ -38,21 +38,16 @@ zmq::address_t::address_t (
 
 zmq::address_t::~address_t ()
 {
-    if (protocol == "tcp") {
-        if (resolved.tcp_addr) {
-            delete resolved.tcp_addr;
-            resolved.tcp_addr = 0;
-        }
-    }
-
 #ifdef ZMQ_HAVE_TLS
-    if (protocol == "tls") {
+    if (protocol == "tcp" || protocol == "tls") {
+#else
+    if (protocol == "tcp") {
+#endif
         if (resolved.tcp_addr) {
             delete resolved.tcp_addr;
             resolved.tcp_addr = 0;
         }
     }
-#endif
 
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else
@@ -67,18 +62,14 @@ zmq::address_t::~address_t ()
 
 int zmq::address_t::to_string (std::string &addr_) const
 {
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tcp" || protocol == "tls") {
+#else
     if (protocol == "tcp") {
+#endif
         if (resolved.tcp_addr)
             return resolved.tcp_addr->to_string(addr_);
     }
-
-#ifdef ZMQ_HAVE_TLS
-    if (protocol == "tls") {
-        if (resolved.tcp_addr) {
-            return resolved.tcp_addr->to_string(addr_);
-        }
-    }
-#endif
 
 #if !defined ZMQ_HAVE_WINDOWS && !defined ZMQ_HAVE_OPENVMS
     else
