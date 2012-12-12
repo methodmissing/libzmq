@@ -140,11 +140,8 @@ void zmq::router_t::xwrite_activated (pipe_t *pipe_)
     it->second.active = true;
 }
 
-int zmq::router_t::xsend (msg_t *msg_, int flags_)
+int zmq::router_t::xsend (msg_t *msg_)
 {
-    // flags_ is unused
-    (void)flags_;
-
     //  If this is the first part of the message it's the ID of the
     //  peer to send the message to.
     if (!more_out) {
@@ -159,7 +156,7 @@ int zmq::router_t::xsend (msg_t *msg_, int flags_)
 
             //  Find the pipe associated with the identity stored in the prefix.
             //  If there's no such pipe just silently ignore the message, unless
-            //  report_unreachable is set.
+            //  router_mandatory is set.
             blob_t identity ((unsigned char*) msg_->data (), msg_->size ());
             outpipes_t::iterator it = outpipes.find (identity);
 
@@ -168,6 +165,11 @@ int zmq::router_t::xsend (msg_t *msg_, int flags_)
                 if (!current_out->check_write ()) {
                     it->second.active = false;
                     current_out = NULL;
+                    if (mandatory) {
+                        more_out = false;
+                        errno = EAGAIN;
+                        return -1;
+                    }
                 }
             }
             else
@@ -227,11 +229,8 @@ int zmq::router_t::xsend (msg_t *msg_, int flags_)
     return 0;
 }
 
-int zmq::router_t::xrecv (msg_t *msg_, int flags_)
+int zmq::router_t::xrecv (msg_t *msg_)
 {
-    // flags_ is unused
-    (void)flags_;
-
     if (prefetched) {
         if (!identity_sent) {
             int rc = msg_->move (prefetched_id);

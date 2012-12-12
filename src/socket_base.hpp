@@ -38,6 +38,11 @@
 #include "clock.hpp"
 #include "pipe.hpp"
 
+extern "C"
+{
+    void zmq_free_event (void *data, void *hint);
+}
+
 namespace zmq
 {
 
@@ -102,18 +107,18 @@ namespace zmq
         void lock();
         void unlock();
 
-        int monitor(const char *endpoint_, int events_);
+        int monitor (const char *endpoint_, int events_);
 
-        void event_connected(const char *addr_, int fd_);
-        void event_connect_delayed(const char *addr_, int err_);
-        void event_connect_retried(const char *addr_, int interval_);
-        void event_listening(const char *addr_, int fd_);
-        void event_bind_failed(const char *addr_, int err_);
-        void event_accepted(const char *addr_, int fd_);
-        void event_accept_failed(const char *addr_, int err_);
-        void event_closed(const char *addr_, int fd_);        
-        void event_close_failed(const char *addr_, int fd_);  
-        void event_disconnected(const char *addr_, int fd_); 
+        void event_connected (std::string &addr_, int fd_);
+        void event_connect_delayed (std::string &addr_, int err_);
+        void event_connect_retried (std::string &addr_, int interval_);
+        void event_listening (std::string &addr_, int fd_);
+        void event_bind_failed (std::string &addr_, int err_);
+        void event_accepted (std::string &addr_, int fd_);
+        void event_accept_failed (std::string &addr_, int err_);
+        void event_closed (std::string &addr_, int fd_);        
+        void event_close_failed (std::string &addr_, int fd_);  
+        void event_disconnected (std::string &addr_, int fd_); 
 
     protected:
 
@@ -133,11 +138,11 @@ namespace zmq
 
         //  The default implementation assumes that send is not supported.
         virtual bool xhas_out ();
-        virtual int xsend (zmq::msg_t *msg_, int flags_);
+        virtual int xsend (zmq::msg_t *msg_);
 
         //  The default implementation assumes that recv in not supported.
         virtual bool xhas_in ();
-        virtual int xrecv (zmq::msg_t *msg_, int flags_);
+        virtual int xrecv (zmq::msg_t *msg_);
 
         //  i_pipe_events will be forwarded to these functions.
         virtual void xread_activated (pipe_t *pipe_);
@@ -151,6 +156,9 @@ namespace zmq
         // Socket event data dispath
         void monitor_event (zmq_event_t data_);
 
+        // Copy monitor specific event endpoints to event messages
+        void copy_monitor_address (char *dest_, std::string &src_);
+
         // Monitor socket cleanup
         void stop_monitor ();
 
@@ -161,6 +169,10 @@ namespace zmq
         //  Map of open endpoints.
         typedef std::multimap <std::string, own_t *> endpoints_t;
         endpoints_t endpoints;
+
+        //  Map of open inproc endpoints.
+        typedef std::multimap <std::string, pipe_t *> inprocs_t;
+        inprocs_t inprocs;
 
         //  To be called after processing commands or invoking any command
         //  handlers explicitly. If required, it will deallocate the socket.

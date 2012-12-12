@@ -102,7 +102,7 @@ void zmq::tls_connecter_t::out_event ()
     //  Shut the connecter down.
     terminate ();
 
-    socket->event_connected (endpoint.c_str(), fd);
+    socket->event_connected (endpoint, fd);
 }
 
 void zmq::tls_connecter_t::close ()

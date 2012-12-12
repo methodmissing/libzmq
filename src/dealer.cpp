@@ -24,8 +24,7 @@
 #include "msg.hpp"
 
 zmq::dealer_t::dealer_t (class ctx_t *parent_, uint32_t tid_, int sid_) :
-    socket_base_t (parent_, tid_, sid_),
-    prefetched (false)
+    socket_base_t (parent_, tid_, sid_)
 {
     options.type = ZMQ_DEALER;
 
@@ -34,15 +33,10 @@ zmq::dealer_t::dealer_t (class ctx_t *parent_, uint32_t tid_, int sid_) :
     //  If the socket is closing we can drop all the outbound requests. There'll
     //  be noone to receive the replies anyway.
     //  options.delay_on_close = false;
-
-    options.recv_identity = true;
-
-    prefetched_msg.init ();
 }
 
 zmq::dealer_t::~dealer_t ()
 {
-    prefetched_msg.close ();
 }
 
 void zmq::dealer_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
@@ -55,48 +49,19 @@ void zmq::dealer_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
     lb.attach (pipe_);
 }
 
-int zmq::dealer_t::xsend (msg_t *msg_, int flags_)
+int zmq::dealer_t::xsend (msg_t *msg_)
 {
-    return lb.send (msg_, flags_);
+    return lb.send (msg_);
 }
 
-int zmq::dealer_t::xrecv (msg_t *msg_, int flags_)
+int zmq::dealer_t::xrecv (msg_t *msg_)
 {
-    // flags_ is unused
-    (void)flags_;
-
-    //  If there is a prefetched message, return it.
-    if (prefetched) {
-        int rc = msg_->move (prefetched_msg);
-        errno_assert (rc == 0);
-        prefetched = false;
-        return 0;
-    }
-
-    //  DEALER socket doesn't use identities. We can safely drop it and 
-    while (true) {
-        int rc = fq.recv (msg_);
-        if (rc != 0)
-            return rc;
-        if (likely (!(msg_->flags () & msg_t::identity)))
-            break;
-    }
-    return 0;
+    return fq.recv (msg_);
 }
 
 bool zmq::dealer_t::xhas_in ()
 {
-    //  We may already have a message pre-fetched.
-    if (prefetched)
-        return true;
-
-    //  Try to read the next message to the pre-fetch buffer.
-    int rc = dealer_t::xrecv (&prefetched_msg, ZMQ_DONTWAIT);
-    if (rc != 0 && errno == EAGAIN)
-        return false;
-    errno_assert (rc == 0);
-    prefetched = true;
-    return true;
+    return fq.has_in ();
 }
 
 bool zmq::dealer_t::xhas_out ()

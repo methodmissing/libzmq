@@ -74,7 +74,7 @@ void zmq::tls_listener_t::in_event ()
     //  If connection was reset by the peer in the meantime, just ignore it.
     //  TODO: Handle specific errors like ENFILE/EMFILE etc.
     if (fd == retired_fd) {
-        socket->event_accept_failed (endpoint.c_str(), zmq_errno());
+        socket->event_accept_failed (endpoint, zmq_errno());
         return;
     }
 
@@ -98,7 +98,7 @@ void zmq::tls_listener_t::in_event ()
     session->inc_seqnum ();
     launch_child (session);
     send_attach (session, engine, false);
-    socket->event_accepted (endpoint.c_str(), fd);
+    socket->event_accepted (endpoint, fd);
 }
 
 void zmq::tls_listener_t::close ()
