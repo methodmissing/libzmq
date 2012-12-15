@@ -42,6 +42,13 @@ zmq::tls_stream_engine_t::tls_stream_engine_t (SSL *ssl_, bool listener_, const 
     tls_init ();
 }
 
+void zmq::tls_stream_engine_t::plug (io_thread_t *io_thread_,
+    session_base_t *session_)
+{
+    zmq::stream_engine_t::plug (io_thread_, session_);
+    tls_handshake ();
+}
+
 void zmq::tls_stream_engine_t::tls_init ()
 {
     SSL_set_app_data (ssl, this);
@@ -59,12 +66,10 @@ void zmq::tls_stream_engine_t::tls_init ()
     bio = NULL;
 
     if (listener) {
-      SSL_set_accept_state (ssl);
+        SSL_set_accept_state (ssl);
     } else {
-      SSL_set_connect_state (ssl);
+        SSL_set_connect_state (ssl);
     }
-
-    tls_handshake ();
 }
 
 zmq::tls_stream_engine_t::~tls_stream_engine_t ()
@@ -74,13 +79,14 @@ zmq::tls_stream_engine_t::~tls_stream_engine_t ()
 int zmq::tls_stream_engine_t::tls_handshake ()
 {
     int rc;
+
     if (SSL_is_init_finished (ssl))
         return 0;
 
     if (listener) {
-      rc = SSL_accept (ssl);
+        rc = SSL_accept (ssl);
     } else {
-      rc = SSL_connect (ssl);
+        rc = SSL_connect (ssl);
     }
 
     switch (SSL_get_error (ssl, rc)) {

@@ -63,8 +63,6 @@ zmq::tls_listener_t::tls_listener_t (io_thread_t *io_thread_,
 zmq::tls_listener_t::~tls_listener_t ()
 {
     zmq_assert (s == retired_fd);
-    zmq_assert (ssl == NULL);
-    zmq_assert (ssl_ctx == NULL);
 }
 
 void zmq::tls_listener_t::in_event ()
@@ -103,6 +101,8 @@ void zmq::tls_listener_t::in_event ()
 
 void zmq::tls_listener_t::close ()
 {
+    tcp_listener_t::close ();
+
     if (ssl) {
         if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
             SSL_shutdown (ssl);
@@ -116,8 +116,6 @@ void zmq::tls_listener_t::close ()
         SSL_CTX_free (ssl_ctx);
         ssl_ctx = NULL;
     }
-
-    tcp_listener_t::close ();
 }
 
 int zmq::tls_listener_t::set_address (const char *addr_)
