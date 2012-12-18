@@ -31,7 +31,6 @@
 void *req, *rep;
 void *pub, *sub;
 void *push, *pull;
-void *router, *dealer;
 
 void *tls_server_socket (void *ctx_, int type_, const char *addr_)
 {
@@ -174,30 +173,12 @@ int main (void)
 
     zmq_sleep (1);
 
-    for (int i = 0; i < 1000; i++) {
-        bounce (rep, req);
-    }
+    bounce (rep, req);
 
     rc = zmq_close (req);
     errno_assert (rc == 0);
 
     rc = zmq_close (rep);
-    errno_assert (rc == 0);
-
-    router = tls_server_socket (ctx, ZMQ_ROUTER, "tls://127.0.0.1:5590");
-
-    dealer = tls_client_socket (ctx, ZMQ_DEALER, "tls://127.0.0.1:5590");
-
-    zmq_sleep (1);
-
-    for (int i = 0; i < 1000; i++) {
-        bounce (router, dealer);
-    }
-
-    rc = zmq_close (dealer);
-    errno_assert (rc == 0);
-
-    rc = zmq_close (router);
     errno_assert (rc == 0);
 
     char buf [32];
@@ -209,13 +190,11 @@ int main (void)
 
     zmq_sleep (1);
 
-    for (int i = 0; i < 1000; i++) {
-        rc = zmq_send (push, content, 32, 0);
-        assert (rc == 32);
+    rc = zmq_send (push, content, 32, 0);
+    assert (rc == 32);
 
-        rc = zmq_recv (pull, buf, 32, 0);
-        assert (rc == 32);
-    }
+    rc = zmq_recv (pull, buf, 32, 0);
+    assert (rc == 32);
 
     rc = zmq_close (push);
     errno_assert (rc == 0);
