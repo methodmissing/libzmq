@@ -66,8 +66,6 @@ namespace zmq
 
         int tls_accept (fd_t fd_);
 
-        SSL_CTX *ssl_ctx;
-
         SSL *ssl;
 
         tls_listener_t (const tls_listener_t&);

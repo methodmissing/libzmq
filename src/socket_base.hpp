@@ -23,6 +23,8 @@
 #ifndef __ZMQ_SOCKET_BASE_HPP_INCLUDED__
 #define __ZMQ_SOCKET_BASE_HPP_INCLUDED__
 
+#include "platform.hpp"
+
 #include <string>
 #include <map>
 #include <stdarg.h>
@@ -37,6 +39,10 @@
 #include "stdint.hpp"
 #include "clock.hpp"
 #include "pipe.hpp"
+
+#ifdef ZMQ_HAVE_TLS
+#include "tls.hpp"
+#endif
 
 extern "C"
 {
@@ -69,6 +75,11 @@ namespace zmq
 
         //  Returns the mailbox associated with this socket.
         mailbox_t *get_mailbox ();
+
+#ifdef ZMQ_HAVE_TLS
+        //  Returns the TLS context associated with this socket.
+        SSL_CTX *get_tls_ctx ();
+#endif
 
         //  Interrupt blocking call if the socket is stuck in one.
         //  This function can be called from a different thread!
@@ -215,6 +226,9 @@ namespace zmq
         void process_bind (zmq::pipe_t *pipe_);
         void process_term (int linger_);
 
+#ifdef ZMQ_HAVE_TLS
+        int tls_init ();
+#endif
         //  Socket's mailbox object.
         mailbox_t mailbox;
 
@@ -243,6 +257,10 @@ namespace zmq
 
         // Bitmask of events being monitored
         int monitor_events;
+
+#ifdef ZMQ_HAVE_TLS
+        SSL_CTX *ssl_ctx;
+#endif
 
         socket_base_t (const socket_base_t&);
         const socket_base_t &operator = (const socket_base_t&);

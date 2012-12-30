@@ -62,8 +62,6 @@ namespace zmq
 
         int tls_init ();
 
-        SSL_CTX *ssl_ctx;
-
         SSL *ssl;
 
         tls_connecter_t (const tls_connecter_t&);

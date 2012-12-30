@@ -111,95 +111,24 @@ void zmq::tls_listener_t::close ()
         SSL_free (ssl);
         ssl = NULL;
     }
-
-    if (ssl_ctx) {
-        SSL_CTX_free (ssl_ctx);
-        ssl_ctx = NULL;
-    }
 }
 
 int zmq::tls_listener_t::set_address (const char *addr_)
 {
     int rc = zmq::tcp_listener_t::set_address (addr_);
-    if (tls_init () == -1)
-        goto error;
-    return rc;
+    if (tls_init () == -1) {
+        int err = errno;
+        close ();
+        errno = err;
+        return -1;
+    }
 
-error:
-    int err = errno;
-    close ();
-    errno = err;
-    return -1;
+    return rc;
 }
 
 int zmq::tls_listener_t::tls_init ()
 {
-    int rc;
-    ssl_ctx = SSL_CTX_new ( SSLv23_server_method() );
-    if (!ssl_ctx) {
-        errno = ETLSCTX;
-        return -1;
-    }
-
-    SSL_CTX_set_options (ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
-
-    rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-    if (rc == 0) {
-        errno = ETLSCIPHER;
-        return -1;
-    }
-
-    if (options.tls_ca_file || options.tls_ca_dir) {
-        if (options.tls_ca_file) {
-            rc = SSL_CTX_load_verify_locations (ssl_ctx, (const char*)options.tls_ca_file, NULL);
-        } else {
-            rc = SSL_CTX_load_verify_locations (ssl_ctx, NULL, (const char*)options.tls_ca_dir);
-        }
-        if (rc == 0) {
-            errno = ETLSCA;
-            return -1;
-        }
-    }
-
-#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
-    SSL_CTX_set_verify_depth (ssl_ctx, 1);
-#endif
-    SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
-    SSL_CTX_set_read_ahead (ssl_ctx, 1);
-
-    if (options.tls_cert_file) {
-        rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
-        if (rc != 1) {
-            errno = ETLSCERT;
-            return -1;
-        }
-    }
-
-    if (options.tls_key_file) {
-        rc = SSL_CTX_use_PrivateKey_file (ssl_ctx, (const char*)options.tls_key_file, SSL_FILETYPE_PEM);
-        if (rc != 1) {
-            errno = ETLSKEY;
-            return -1;
-        }
-
-        rc = SSL_CTX_check_private_key(ssl_ctx);
-        if (rc != 1) {
-            errno = ETLSKEYINVALID;
-            return -1;
-        }
-    }
-
-    RSA *rsa = RSA_generate_key (1024, RSA_F4, NULL, NULL);
-
-    if (!SSL_CTX_set_tmp_rsa (ssl_ctx, rsa)) {
-        RSA_free (rsa);
-        errno = ETLSRSA;
-        return -1;
-    }
-
-    RSA_free (rsa);
-
-    ssl = SSL_new (ssl_ctx);
+    ssl = SSL_new ( socket-> get_tls_ctx () );
     if (!ssl) {
         errno = ETLS;
         return -1;

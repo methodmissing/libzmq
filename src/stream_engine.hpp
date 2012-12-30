@@ -78,7 +78,7 @@ namespace zmq
         virtual int read (void *data_, size_t size_);
 
         //  Function to handle network disconnections.
-        void error ();
+        virtual void error ();
 
     private:
 

@@ -60,7 +60,7 @@
 #include "pgm_socket.hpp"
 #endif
 
-#ifdef TLS_HAVE_TLS
+#ifdef ZMQ_HAVE_TLS
 #include "tls_listener.hpp"
 #endif
 
@@ -137,7 +137,12 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_, uint32_t tid_, int sid_) :
     ticks (0),
     rcvmore (false),
     monitor_socket (NULL),
+#ifdef ZMQ_HAVE_TLS
+    monitor_events (0),
+    ssl_ctx (NULL)
+#else
     monitor_events (0)
+#endif    
 {
     options.socket_id = sid_;
 }
@@ -152,6 +157,13 @@ zmq::mailbox_t *zmq::socket_base_t::get_mailbox ()
 {
     return &mailbox;
 }
+
+#ifdef ZMQ_HAVE_TLS
+SSL_CTX *zmq::socket_base_t::get_tls_ctx ()
+{
+    return ssl_ctx;
+}
+#endif
 
 void zmq::socket_base_t::stop ()
 {
@@ -383,6 +395,11 @@ int zmq::socket_base_t::bind (const char *addr_)
 
 #ifdef ZMQ_HAVE_TLS
     if (protocol == "tls") {
+        rc = tls_init ();
+        if (rc != 0) {
+            return -1;
+        }
+
         tls_listener_t *listener = new (std::nothrow) tls_listener_t (
             io_thread, this, options);
         alloc_assert (listener);
@@ -566,6 +583,16 @@ int zmq::socket_base_t::connect (const char *addr_)
             return -1;
     }
 #endif
+
+#ifdef ZMQ_HAVE_TLS
+    if (protocol == "tls") {
+        rc = tls_init ();
+        if (rc != 0) {
+            return -1;
+        }
+    }
+#endif
+
     //  Create session.
     session_base_t *session = session_base_t::create (io_thread, true, this,
         options, paddr);
@@ -819,7 +846,7 @@ int zmq::socket_base_t::close ()
 {
     //  Mark the socket as dead
     tag = 0xdeadbeef;
-    
+
     //  Transfer the ownership of the socket from this application thread
     //  to the reaper thread which will take care of the rest of shutdown
     //  process.
@@ -1018,6 +1045,13 @@ void zmq::socket_base_t::check_destroy ()
 
         //  Notify the reaper about the fact.
         send_reaped ();
+
+#ifdef ZMQ_HAVE_TLS
+    if (ssl_ctx) {
+        SSL_CTX_free (ssl_ctx);
+        ssl_ctx = NULL;
+    }
+#endif
 
         //  Deallocate.
         own_t::process_destroy ();
@@ -1263,7 +1297,7 @@ void zmq::socket_base_t::monitor_event (zmq_event_t event_)
     }
 }
 
-void zmq::socket_base_t::stop_monitor()
+void zmq::socket_base_t::stop_monitor ()
 {
     if (monitor_socket) {
         zmq_close (monitor_socket);
@@ -1271,3 +1305,67 @@ void zmq::socket_base_t::stop_monitor()
         monitor_events = 0;
     }
 }
+
+#ifdef ZMQ_HAVE_TLS
+
+int zmq::socket_base_t::tls_init ()
+{
+    int rc;
+    ssl_ctx = SSL_CTX_new ( SSLv23_method () );
+    if (!ssl_ctx) {
+        errno = ETLSCTX;
+        return -1;
+    }
+
+    SSL_CTX_set_options (ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+
+    rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+    if (rc == 0) {
+        errno = ETLSCIPHER;
+        return -1;
+    }
+
+    if (options.tls_ca_file || options.tls_ca_dir) {
+        if (options.tls_ca_file) {
+            rc = SSL_CTX_load_verify_locations (ssl_ctx, (const char*)options.tls_ca_file, NULL);
+        } else {
+            rc = SSL_CTX_load_verify_locations (ssl_ctx, NULL, (const char*)options.tls_ca_dir);
+        }
+        if (rc == 0) {
+            errno = ETLSCA;
+            return -1;
+        }
+    }
+
+#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
+    SSL_CTX_set_verify_depth (ssl_ctx, 1);
+#endif
+    SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
+    SSL_CTX_set_read_ahead (ssl_ctx, 1);
+
+    if (options.tls_cert_file) {
+        rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
+        if (rc != 1) {
+            errno = ETLSCERT;
+            return -1;
+        }
+    }
+
+    if (options.tls_key_file) {
+        rc = SSL_CTX_use_PrivateKey_file (ssl_ctx, (const char*)options.tls_key_file, SSL_FILETYPE_PEM);
+        if (rc != 1) {
+            errno = ETLSKEY;
+            return -1;
+        }
+
+        rc = SSL_CTX_check_private_key (ssl_ctx);
+        if (rc != 1) {
+            errno = ETLSKEYINVALID;
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+#endif
