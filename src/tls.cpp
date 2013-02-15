@@ -65,6 +65,7 @@ namespace zmq
     {
         if (!buf_)
             return -1;
+
         zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);
         BIO_clear_retry_flags (b_);
         int nbytes = engine->write_plaintext (buf_, size_);
@@ -84,9 +85,12 @@ namespace zmq
 
     int tls_stream_read (BIO* b_, char* buf_, int size_)
     {
-        if (!buf_)
+        if (!buf_) {
             return -1;
-        zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);
+        }
+
+        zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);   
+
         BIO_clear_retry_flags (b_);
         int nbytes = engine->read_plaintext (buf_, size_);
         if (nbytes > 0) {
@@ -160,6 +164,27 @@ namespace zmq
 
             printf("%s in %s %s\n", msg, lib, func);
         }
+    }
+
+    void tls_info_callback (const SSL* s_, int where_, int ret_) {
+        const char* str = "undefined";
+        int w = where_ & ~SSL_ST_MASK;
+        if (w & SSL_ST_CONNECT) {
+            str = "SSL_connect";
+        } else if (w & SSL_ST_ACCEPT) {
+            str = "SSL_accept";
+        }
+        if (where_ & SSL_CB_LOOP) {
+            printf("TLS %p: %s:%s\n", s_, str, SSL_state_string_long (s_));
+        } else if (where_ & SSL_CB_ALERT) {
+            printf("TLS %p: %s:%s:%s\n", s_, ((where_ & SSL_CB_READ) ? "read" : "write"), SSL_alert_type_string_long (ret_), SSL_alert_desc_string_long (ret_));
+        } else if (where_ & SSL_CB_EXIT) {
+            if (ret_ == 0) {
+                printf("TLS %p: %s failed in %s\n", s_, str, SSL_state_string_long (s_));
+            } else if (ret_ < 0) {
+                printf("TLS %p: %s error in %s\n", s_, str, SSL_state_string_long (s_));
+            }
+       }
     }
 }
 

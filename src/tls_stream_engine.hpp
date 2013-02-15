@@ -42,7 +42,8 @@ namespace zmq
         tls_stream_engine_t (SSL *ssl_, bool server, const options_t &options_, const std::string &endpoint);
         ~tls_stream_engine_t ();
 
-        void terminate ();
+		void plug (zmq::io_thread_t *io_thread_,
+           zmq::session_base_t *session_);
 
         //  i_poll_events interface implementation.
         void in_event ();
@@ -67,14 +68,18 @@ namespace zmq
 
         void error ();
 
+        void unplug ();
+
     private:
 
-        void tls_init ();
+        int start_tls ();
+        int begin_tls ();
+        int continue_tls ();
 
-        int tls_handshake ();
+        void tls_error ();
 
         enum tls_state {
-            TLS_NONE, TLS_CONNECTING, TLS_CONNECTED
+            TLS_NONE, TLS_WAIT, TLS_CONNECTING, TLS_CONNECTED, TLS_ERROR
         };
 
         tls_state state;

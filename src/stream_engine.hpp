@@ -51,7 +51,7 @@ namespace zmq
         ~stream_engine_t ();
 
         //  i_engine interface implementation.
-        void plug (zmq::io_thread_t *io_thread_,
+        virtual void plug (zmq::io_thread_t *io_thread_,
            zmq::session_base_t *session_);
         void terminate ();
         void activate_in ();
@@ -80,13 +80,15 @@ namespace zmq
         //  Function to handle network disconnections.
         virtual void error ();
 
+        //  Unplug the engine from the session.
+        virtual void unplug ();
+
+        bool plugged;
+
     private:
 
         //  Underlying socket.
         fd_t s;
-
-        //  Unplug the engine from the session.
-        void unplug ();
 
         //  Receives the greeting message from the peer.
         int receive_greeting ();
@@ -135,8 +137,6 @@ namespace zmq
 
         // String representation of endpoint
         std::string endpoint;
-
-        bool plugged;
 
         // Socket
         zmq::socket_base_t *socket;

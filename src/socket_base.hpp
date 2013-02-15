@@ -228,6 +228,7 @@ namespace zmq
 
 #ifdef ZMQ_HAVE_TLS
         int tls_init ();
+        void tls_term ();
 #endif
         //  Socket's mailbox object.
         mailbox_t mailbox;

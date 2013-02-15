@@ -29,14 +29,13 @@
 #include <assert.h>
 
 void *req, *rep;
-void *pub, *sub;
 void *push, *pull;
 
 void *tls_server_socket (void *ctx_, int type_, const char *addr_)
 {
     int rc;
     void *s = zmq_socket (ctx_, type_);
-    errno_assert (s);
+    assert (s);
 
     rc = zmq_setsockopt (s, ZMQ_TLS_CA_FILE, "tls/test-ca.crt", 15);
     errno_assert (rc == 0);
@@ -57,7 +56,7 @@ void *tls_client_socket (void *ctx_, int type_, const char *addr_)
 {
     int rc;
     void *s = zmq_socket (ctx_, type_);
-    errno_assert (s);
+    assert (s);
 
     rc = zmq_setsockopt (s, ZMQ_TLS_CA_FILE, "tls/test-ca.crt", 15);
     errno_assert (rc == 0);
@@ -175,6 +174,26 @@ int main (void)
 
     bounce (rep, req);
 
+    rc = zmq_unbind (rep, "tls://127.0.0.1:5560");
+    errno_assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_bind (rep, "tls://127.0.0.1:5560");
+    errno_assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_disconnect (req, "tls://127.0.0.1:5560");
+    errno_assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_connect (req, "tls://127.0.0.1:5560");
+    errno_assert (rc == 0);
+
+    bounce (rep, req);
+
     rc = zmq_close (req);
     errno_assert (rc == 0);
 
@@ -188,9 +207,15 @@ int main (void)
 
     pull = tls_client_socket (ctx, ZMQ_PULL, "tls://127.0.0.1:5580");
 
-    zmq_sleep (1);
+    zmq_sleep (2);
 
     rc = zmq_send (push, content, 32, 0);
+    assert (rc == 32);
+
+    rc = zmq_send (push, content, 32, 0);
+    assert (rc == 32);
+
+    rc = zmq_recv (pull, buf, 32, 0);
     assert (rc == 32);
 
     rc = zmq_recv (pull, buf, 32, 0);

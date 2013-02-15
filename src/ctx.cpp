@@ -54,12 +54,12 @@ zmq::ctx_t::ctx_t () :
     io_thread_count (ZMQ_IO_THREADS_DFLT)
 {
 #ifdef ZMQ_HAVE_TLS
-    CRYPTO_malloc_init();
-    SSL_library_init();
-    SSL_load_error_strings();
-    ERR_load_BIO_strings();
-    OpenSSL_add_ssl_algorithms();
-    OpenSSL_add_all_algorithms();
+    if (!SSL_library_init()) {
+        CRYPTO_malloc_init();
+        SSL_load_error_strings();
+        ERR_load_BIO_strings();
+        OpenSSL_add_all_algorithms();
+    }
 #endif
 }
 

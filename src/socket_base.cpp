@@ -150,6 +150,9 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_, uint32_t tid_, int sid_) :
 zmq::socket_base_t::~socket_base_t ()
 {
     stop_monitor ();
+#ifdef ZMQ_HAVE_TLS
+    tls_term ();
+#endif
     zmq_assert (destroyed);
 }
 
@@ -960,7 +963,6 @@ void zmq::socket_base_t::process_term (int linger_)
     for (pipes_t::size_type i = 0; i != pipes.size (); ++i)
         pipes [i]->terminate (false);
     register_term_acks ((int) pipes.size ());
-
     //  Continue the termination process immediately.
     own_t::process_term (linger_);
 }
@@ -1047,10 +1049,7 @@ void zmq::socket_base_t::check_destroy ()
         send_reaped ();
 
 #ifdef ZMQ_HAVE_TLS
-    if (ssl_ctx) {
-        SSL_CTX_free (ssl_ctx);
-        ssl_ctx = NULL;
-    }
+        tls_term ();
 #endif
 
         //  Deallocate.
@@ -1311,18 +1310,27 @@ void zmq::socket_base_t::stop_monitor ()
 int zmq::socket_base_t::tls_init ()
 {
     int rc;
-    ssl_ctx = SSL_CTX_new ( SSLv23_method () );
+
     if (!ssl_ctx) {
-        errno = ETLSCTX;
-        return -1;
-    }
+        ssl_ctx = SSL_CTX_new ( SSLv23_method () );
+        if (!ssl_ctx) {
+            errno = ETLSCTX;
+            return -1;
+        }
 
-    SSL_CTX_set_options (ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+        SSL_CTX_set_options (ssl_ctx, SSL_OP_ALL | SSL_OP_NO_SSLv2);
+        SSL_CTX_set_info_callback (ssl_ctx, tls_info_callback);
+        rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
+        if (rc == 0) {
+           errno = ETLSCIPHER;
+           return -1;
+        }
 
-    rc = SSL_CTX_set_cipher_list (ssl_ctx, "ALL:!ADH:!LOW:!EXP:!MD5:@STRENGTH");
-    if (rc == 0) {
-        errno = ETLSCIPHER;
-        return -1;
+#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
+        SSL_CTX_set_verify_depth (ssl_ctx, 1);
+#endif
+        SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
+        SSL_CTX_set_read_ahead (ssl_ctx, 1);
     }
 
     if (options.tls_ca_file || options.tls_ca_dir) {
@@ -1336,12 +1344,6 @@ int zmq::socket_base_t::tls_init ()
             return -1;
         }
     }
-
-#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
-    SSL_CTX_set_verify_depth (ssl_ctx, 1);
-#endif
-    SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
-    SSL_CTX_set_read_ahead (ssl_ctx, 1);
 
     if (options.tls_cert_file) {
         rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
@@ -1366,6 +1368,14 @@ int zmq::socket_base_t::tls_init ()
     }
 
     return 0;
+}
+
+void zmq::socket_base_t::tls_term ()
+{
+    if (ssl_ctx) {
+        SSL_CTX_free (ssl_ctx);
+        ssl_ctx = NULL;
+    }
 }
 
 #endif

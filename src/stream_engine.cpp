@@ -51,6 +51,7 @@
 #include "wire.hpp"
 
 zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, const std::string &endpoint_) :
+    plugged (false),
     s (fd_),
     io_enabled (false),
     inpos (NULL),
@@ -64,7 +65,6 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, cons
     session (NULL),
     options (options_),
     endpoint (endpoint_),
-    plugged (false),
     socket (NULL)
 {
     //  Put the socket into non-blocking mode.

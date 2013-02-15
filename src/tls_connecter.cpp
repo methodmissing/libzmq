@@ -107,21 +107,18 @@ void zmq::tls_connecter_t::out_event ()
 
 void zmq::tls_connecter_t::close ()
 {
-    zmq::tcp_connecter_t::close ();
-
     if (ssl) {
         if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
             SSL_shutdown (ssl);
-        else
-            SSL_clear (ssl);
         SSL_free (ssl);
         ssl = NULL;
     }
+
+    zmq::tcp_connecter_t::close ();
 }
 
 int zmq::tls_connecter_t::tls_init ()
 {
-
     ssl = SSL_new ( socket-> get_tls_ctx () );
     if (!ssl) {
         errno = ETLS;

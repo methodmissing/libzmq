@@ -101,16 +101,14 @@ void zmq::tls_listener_t::in_event ()
 
 void zmq::tls_listener_t::close ()
 {
-    tcp_listener_t::close ();
-
     if (ssl) {
         if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
             SSL_shutdown (ssl);
-        else
-            SSL_clear (ssl);
         SSL_free (ssl);
         ssl = NULL;
     }
+
+    tcp_listener_t::close ();
 }
 
 int zmq::tls_listener_t::set_address (const char *addr_)
@@ -122,7 +120,6 @@ int zmq::tls_listener_t::set_address (const char *addr_)
         errno = err;
         return -1;
     }
-
     return rc;
 }
 

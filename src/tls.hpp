@@ -41,6 +41,8 @@ namespace zmq
 
     void print_tls_err ();
 
+    void tls_info_callback (const SSL* s_, int where_, int ret_);
+
     int tls_stream_write (BIO* b_, const char* buf_, int num_);
 
     int tls_stream_read (BIO* b_, char* buf_, int size_);
@@ -54,7 +56,6 @@ namespace zmq
     int tls_stream_free (BIO* data_);
 
     BIO *BIO_new_stream (tls_stream_engine_t *engine_);
-
 }
 
 #endif
