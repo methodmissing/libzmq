@@ -40,10 +40,10 @@ zmq::tls_stream_engine_t::tls_stream_engine_t (SSL *ssl_, bool listener_, const 
     tls_read_needs_write (false),
     tls_write_needs_read (false)
 {
-    start_tls ();
+    tls_start ();
 }
 
-int zmq::tls_stream_engine_t::start_tls ()
+int zmq::tls_stream_engine_t::tls_start ()
 {
     if (state != TLS_NONE) {
         return -1;
@@ -55,12 +55,12 @@ int zmq::tls_stream_engine_t::start_tls ()
     }
 
     state = TLS_CONNECTING;
-    begin_tls ();
+    tls_begin ();
 
     return 0;
 }
 
-int zmq::tls_stream_engine_t::begin_tls ()
+int zmq::tls_stream_engine_t::tls_begin ()
 {
     int rc;
 
@@ -86,13 +86,13 @@ int zmq::tls_stream_engine_t::begin_tls ()
         SSL_set_connect_state (ssl);
     }
 
-    if (rc = continue_tls ())
+    if (tls_continue () != 0)
         return rc;
 
     return 0;
 }
 
-int zmq::tls_stream_engine_t::continue_tls ()
+int zmq::tls_stream_engine_t::tls_continue ()
 {
     int rc;
 
@@ -125,7 +125,7 @@ void zmq::tls_stream_engine_t::plug (io_thread_t *io_thread_,
 {
     zmq::stream_engine_t::plug (io_thread_, session_);
     state = TLS_CONNECTING;
-    if (begin_tls ())
+    if (tls_begin () != 0)
         error ();
 }
 
@@ -154,7 +154,6 @@ void zmq::tls_stream_engine_t::error ()
 {
     tls_error ();
     zmq::stream_engine_t::error ();
-    
 }
 
 int zmq::tls_stream_engine_t::write_plaintext (const void *data_, size_t size_)
@@ -205,8 +204,7 @@ int zmq::tls_stream_engine_t::write (const void *data_, size_t size_)
          return 0;
          break;
     case SSL_ERROR_ZERO_RETURN:
-         errno = EAGAIN;
-         return 0;
+         return -1;
          break;
     default:
          break;
@@ -253,8 +251,7 @@ int zmq::tls_stream_engine_t::read (void *data_, size_t size_)
          return 0;
          break;
     case SSL_ERROR_ZERO_RETURN:
-         errno = EAGAIN;
-         return 0;
+         return -1;
          break;
     default:
          break;
@@ -274,7 +271,7 @@ void zmq::tls_stream_engine_t::in_event ()
     }
 
     if (state == TLS_CONNECTING) {
-        if (continue_tls ())
+        if (tls_continue ())
             tls_error ();
         return;
     }
@@ -296,7 +293,7 @@ void zmq::tls_stream_engine_t::out_event ()
     }
 
     if (state == TLS_CONNECTING) {
-        if (continue_tls ())
+        if (tls_continue ())
             tls_error ();
         return;
     }

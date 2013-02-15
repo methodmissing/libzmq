@@ -85,9 +85,8 @@ namespace zmq
 
     int tls_stream_read (BIO* b_, char* buf_, int size_)
     {
-        if (!buf_) {
+        if (!buf_)
             return -1;
-        }
 
         zmq::tls_stream_engine_t *engine = static_cast<zmq::tls_stream_engine_t *> (b_->ptr);   
 
