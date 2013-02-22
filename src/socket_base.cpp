@@ -145,6 +145,7 @@ zmq::socket_base_t::socket_base_t (ctx_t *parent_, uint32_t tid_, int sid_) :
 #endif    
 {
     options.socket_id = sid_;
+    options.ipv6 = parent_->get (ZMQ_IPV6);
 }
 
 zmq::socket_base_t::~socket_base_t ()
@@ -490,14 +491,14 @@ int zmq::socket_base_t::connect (const char *addr_)
 
         //  Create a bi-directional pipe to connect the peers.
         object_t *parents [2] = {this, peer.socket};
-        pipe_t *pipes [2] = {NULL, NULL};
+        pipe_t *new_pipes [2] = {NULL, NULL};
         int hwms [2] = {sndhwm, rcvhwm};
         bool delays [2] = {options.delay_on_disconnect, options.delay_on_close};
-        int rc = pipepair (parents, pipes, hwms, delays);
+        int rc = pipepair (parents, new_pipes, hwms, delays);
         errno_assert (rc == 0);
 
         //  Attach local end of the pipe to this socket object.
-        attach_pipe (pipes [0]);
+        attach_pipe (new_pipes [0]);
 
         //  If required, send the identity of the local socket to the peer.
         if (peer.options.recv_identity) {
@@ -506,9 +507,9 @@ int zmq::socket_base_t::connect (const char *addr_)
             errno_assert (rc == 0);
             memcpy (id.data (), options.identity, options.identity_size);
             id.set_flags (msg_t::identity);
-            bool written = pipes [0]->write (&id);
+            bool written = new_pipes [0]->write (&id);
             zmq_assert (written);
-            pipes [0]->flush ();
+            new_pipes [0]->flush ();
         }
 
         //  If required, send the identity of the peer to the local socket.
@@ -518,21 +519,21 @@ int zmq::socket_base_t::connect (const char *addr_)
             errno_assert (rc == 0);
             memcpy (id.data (), peer.options.identity, peer.options.identity_size);
             id.set_flags (msg_t::identity);
-            bool written = pipes [1]->write (&id);
+            bool written = new_pipes [1]->write (&id);
             zmq_assert (written);
-            pipes [1]->flush ();
+            new_pipes [1]->flush ();
         }
 
         //  Attach remote end of the pipe to the peer socket. Note that peer's
         //  seqnum was incremented in find_endpoint function. We don't need it
         //  increased here.
-        send_bind (peer.socket, pipes [1], false);
+        send_bind (peer.socket, new_pipes [1], false);
 
         // Save last endpoint URI
         options.last_endpoint.assign (addr_);
 
         // remember inproc connections for disconnect
-        inprocs.insert (inprocs_t::value_type (std::string (addr_), pipes[0]));
+        inprocs.insert (inprocs_t::value_type (std::string (addr_), new_pipes[0]));
 
         return 0;
     }
@@ -556,7 +557,7 @@ int zmq::socket_base_t::connect (const char *addr_)
         paddr->resolved.tcp_addr = new (std::nothrow) tcp_address_t ();
         alloc_assert (paddr->resolved.tcp_addr);
         int rc = paddr->resolved.tcp_addr->resolve (
-            address.c_str (), false, options.ipv4only ? true : false);
+            address.c_str (), false, options.ipv6);
         if (rc != 0) {
             delete paddr;
             return -1;
@@ -608,17 +609,17 @@ int zmq::socket_base_t::connect (const char *addr_)
     if (options.delay_attach_on_connect != 1 || icanhasall) {
         //  Create a bi-directional pipe.
         object_t *parents [2] = {this, session};
-        pipe_t *pipes [2] = {NULL, NULL};
+        pipe_t *new_pipes [2] = {NULL, NULL};
         int hwms [2] = {options.sndhwm, options.rcvhwm};
         bool delays [2] = {options.delay_on_disconnect, options.delay_on_close};
-        rc = pipepair (parents, pipes, hwms, delays);
+        rc = pipepair (parents, new_pipes, hwms, delays);
         errno_assert (rc == 0);
 
         //  Attach local end of the pipe to the socket object.
-        attach_pipe (pipes [0], icanhasall);
+        attach_pipe (new_pipes [0], icanhasall);
 
         //  Attach remote end of the pipe to the session object later on.
-        session->attach_pipe (pipes [1]);
+        session->attach_pipe (new_pipes [1]);
     }
 
     //  Save last endpoint URI
@@ -732,7 +733,7 @@ int zmq::socket_base_t::send (msg_t *msg_, int flags_)
         return -1;
 
     //  Compute the time when the timeout should occur.
-    //  If the timeout is infite, don't care. 
+    //  If the timeout is infinite, don't care.
     int timeout = options.sndtimeo;
     uint64_t end = timeout < 0 ? 0 : (clock.now_ms () + timeout);
 
@@ -814,7 +815,7 @@ int zmq::socket_base_t::recv (msg_t *msg_, int flags_)
     }
 
     //  Compute the time when the timeout should occur.
-    //  If the timeout is infite, don't care. 
+    //  If the timeout is infinite, don't care.
     int timeout = options.rcvtimeo;
     uint64_t end = timeout < 0 ? 0 : (clock.now_ms () + timeout);
 

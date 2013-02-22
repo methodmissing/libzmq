@@ -48,6 +48,11 @@
 #include <openssl/err.h>
 #endif
 
+// EPROTO is not used by OpenBSD and maybe other platforms.
+#ifndef EPROTO
+#define EPROTO 0
+#endif
+
 namespace zmq
 {
     const char *errno_to_string (int errno_);

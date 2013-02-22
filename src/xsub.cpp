@@ -48,7 +48,7 @@ zmq::xsub_t::~xsub_t ()
 void zmq::xsub_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
 {
     // icanhasall_ is unused
-    (void)icanhasall_;
+    (void) icanhasall_;
 
     zmq_assert (pipe_);
     fq.attach (pipe_);
@@ -87,25 +87,24 @@ int zmq::xsub_t::xsend (msg_t *msg_)
     size_t size = msg_->size ();
     unsigned char *data = (unsigned char*) msg_->data ();
 
-    // Malformed subscriptions.
-    if (size < 1 || (*data != 0 && *data != 1)) {
-        errno = EINVAL;
-        return -1;
-    }
-
-    // Process the subscription.
-    if (*data == 1) {
-	// this used to filter out duplicate subscriptions,
-	// however this is alread done on the XPUB side and
-	// doing it here as well breaks ZMQ_XPUB_VERBOSE
-	// when there are forwarding devices involved
+    if (size > 0 && *data == 1) {
+        //  Process subscribe message
+	//  This used to filter out duplicate subscriptions,
+	//  however this is alread done on the XPUB side and
+	//  doing it here as well breaks ZMQ_XPUB_VERBOSE
+	//  when there are forwarding devices involved.
         subscriptions.add (data + 1, size - 1);
         return dist.send_to_all (msg_);
     }
-    else {
+    else 
+    if (size > 0 && *data == 0) {
+        //  Process unsubscribe message
         if (subscriptions.rm (data + 1, size - 1))
             return dist.send_to_all (msg_);
     }
+    else 
+        //  User message sent upstream to XPUB socket
+        return dist.send_to_all (msg_);
 
     int rc = msg_->close ();
     errno_assert (rc == 0);

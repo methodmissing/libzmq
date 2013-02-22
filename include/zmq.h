@@ -175,13 +175,14 @@ ZMQ_EXPORT const char *zmq_strerror (int errnum);
 #define ZMQ_MAX_SOCKETS_DFLT 1024
 
 ZMQ_EXPORT void *zmq_ctx_new (void);
-ZMQ_EXPORT int zmq_ctx_destroy (void *context);
+ZMQ_EXPORT int zmq_ctx_term (void *context);
 ZMQ_EXPORT int zmq_ctx_set (void *context, int option, int optval);
 ZMQ_EXPORT int zmq_ctx_get (void *context, int option);
 
 /*  Old (legacy) API                                                          */
 ZMQ_EXPORT void *zmq_init (int io_threads);
 ZMQ_EXPORT int zmq_term (void *context);
+ZMQ_EXPORT int zmq_ctx_destroy (void *context);
 
 
 /******************************************************************************/
@@ -252,7 +253,7 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_MULTICAST_HOPS 25
 #define ZMQ_RCVTIMEO 27
 #define ZMQ_SNDTIMEO 28
-#define ZMQ_IPV4ONLY 31
+#define ZMQ_IPV4ONLY 31              /*  Request replacement by IPV6          */
 #define ZMQ_LAST_ENDPOINT 32
 #define ZMQ_ROUTER_MANDATORY 33
 #define ZMQ_TCP_KEEPALIVE 34
@@ -262,14 +263,14 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_TCP_ACCEPT_FILTER 38
 #define ZMQ_DELAY_ATTACH_ON_CONNECT 39
 #define ZMQ_XPUB_VERBOSE 40
-#define ZMQ_ROUTER_RAW_SOCK 41
-#define ZMQ_TLS_CA_DIR 42
-#define ZMQ_TLS_CA_FILE 43
-#define ZMQ_TLS_CERT_DIR 44
-#define ZMQ_TLS_CERT_FILE 45
-#define ZMQ_TLS_KEY_FILE 46
-#define ZMQ_TLS_CERT_PASSWD 47
-#define ZMQ_ROUTER_RAW 48
+#define ZMQ_ROUTER_RAW 41
+#define ZMQ_IPV6 42
+#define ZMQ_TLS_CA_DIR 43
+#define ZMQ_TLS_CA_FILE 44
+#define ZMQ_TLS_CERT_DIR 45
+#define ZMQ_TLS_CERT_FILE 46
+#define ZMQ_TLS_KEY_FILE 47
+#define ZMQ_TLS_CERT_PASSWD 48
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1
@@ -397,6 +398,8 @@ typedef struct
     short events;
     short revents;
 } zmq_pollitem_t;
+
+#define ZMQ_POLLITEMS_DFLT 16
 
 ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items, int nitems, long timeout);
 

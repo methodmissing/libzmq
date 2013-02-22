@@ -56,7 +56,7 @@
 
 
 // XSI vector I/O
-#if ZMQ_HAVE_UIO
+#if defined ZMQ_HAVE_UIO
 #include <sys/uio.h>
 #else
 struct iovec {
@@ -163,7 +163,7 @@ void *zmq_ctx_new (void)
     return ctx;
 }
 
-int zmq_ctx_destroy (void *ctx_)
+int zmq_ctx_term (void *ctx_)
 {
     if (!ctx_ || !((zmq::ctx_t*) ctx_)->check_tag ()) {
         errno = EFAULT;
@@ -225,7 +225,12 @@ void *zmq_init (int io_threads_)
 
 int zmq_term (void *ctx_)
 {
-    return zmq_ctx_destroy (ctx_);
+    return zmq_ctx_term (ctx_);
+}
+
+int zmq_ctx_destroy (void *ctx_)
+{
+    return zmq_ctx_term (ctx_);
 }
 
 
@@ -642,9 +647,13 @@ int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
     zmq::clock_t clock;
     uint64_t now = 0;
     uint64_t end = 0;
+    pollfd spollfds[ZMQ_POLLITEMS_DFLT];
+    pollfd *pollfds = spollfds;
 
-    pollfd *pollfds = (pollfd*) malloc (nitems_ * sizeof (pollfd));
-    alloc_assert (pollfds);
+    if (nitems_ > ZMQ_POLLITEMS_DFLT) {
+        pollfds = (pollfd*) malloc (nitems_ * sizeof (pollfd));
+        alloc_assert (pollfds);
+    }
 
     //  Build pollset for poll () system call.
     for (int i = 0; i != nitems_; i++) {
@@ -655,7 +664,8 @@ int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
             size_t zmq_fd_size = sizeof (zmq::fd_t);
             if (zmq_getsockopt (items_ [i].socket, ZMQ_FD, &pollfds [i].fd,
                 &zmq_fd_size) == -1) {
-                free (pollfds);
+                if (pollfds != spollfds)
+                    free (pollfds);
                 return -1;
             }
             pollfds [i].events = items_ [i].events ? POLLIN : 0;
@@ -688,7 +698,8 @@ int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
         while (true) {
             int rc = poll (pollfds, nitems_, timeout);
             if (rc == -1 && errno == EINTR) {
-                free (pollfds);
+                if (pollfds != spollfds)
+                    free (pollfds);
                 return -1;
             }
             errno_assert (rc >= 0);
@@ -706,7 +717,8 @@ int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
                 uint32_t zmq_events;
                 if (zmq_getsockopt (items_ [i].socket, ZMQ_EVENTS, &zmq_events,
                     &zmq_events_size) == -1) {
-                    free (pollfds);
+                    if (pollfds != spollfds)
+                        free (pollfds);
                     return -1;
                 }
                 if ((items_ [i].events & ZMQ_POLLOUT) &&
@@ -766,7 +778,8 @@ int zmq_poll (zmq_pollitem_t *items_, int nitems_, long timeout_)
             break;
     }
 
-    free (pollfds);
+    if (pollfds != spollfds)
+        free (pollfds);
     return nevents;
 
 #elif defined ZMQ_POLL_BASED_ON_SELECT
@@ -980,7 +993,7 @@ int zmq_proxy (void *frontend_, void *backend_, void *control_)
 
 //  The deprecated device functionality
 
-int zmq_device (int type, void *frontend_, void *backend_)
+int zmq_device (int /* type */, void *frontend_, void *backend_)
 {
     return zmq::proxy (
         (zmq::socket_base_t*) frontend_,
@@ -989,7 +1002,7 @@ int zmq_device (int type, void *frontend_, void *backend_)
 
 //  Callback to free socket event data
 
-void zmq_free_event (void *event_data, void *hint)
+void zmq_free_event (void *event_data, void * /* hint */)
 {
     zmq_event_t *event = (zmq_event_t *) event_data;
 

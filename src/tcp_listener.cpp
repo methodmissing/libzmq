@@ -148,7 +148,7 @@ int zmq::tcp_listener_t::get_address (std::string &addr_)
 int zmq::tcp_listener_t::set_address (const char *addr_)
 {
     //  Convert the textual address into address structure.
-    int rc = address.resolve (addr_, true, options.ipv4only ? true : false);
+    int rc = address.resolve (addr_, true, options.ipv6);
     if (rc != 0)
         return -1;
 
@@ -160,8 +160,9 @@ int zmq::tcp_listener_t::set_address (const char *addr_)
 #endif
 
     //  IPv6 address family not supported, try automatic downgrade to IPv4.
-    if (address.family () == AF_INET6 && errno == EAFNOSUPPORT &&
-          !options.ipv4only) {
+    if (address.family () == AF_INET6
+    && errno == EAFNOSUPPORT
+    && options.ipv6) {
         rc = address.resolve (addr_, true, true);
         if (rc != 0)
             return rc;
@@ -240,7 +241,8 @@ zmq::fd_t zmq::tcp_listener_t::accept ()
     //  Accept one connection and deal with different failure modes.
     zmq_assert (s != retired_fd);
 
-    struct sockaddr_storage ss = {};
+    struct sockaddr_storage ss;
+    memset (&ss, 0, sizeof (ss));
 #ifdef ZMQ_HAVE_HPUX
     int ss_len = sizeof (ss);
 #else

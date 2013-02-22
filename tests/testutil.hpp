@@ -24,20 +24,11 @@
 
 #include "../include/zmq.h"
 #include <string.h>
-
 #undef NDEBUG
 #include <assert.h>
 
-#define errno_assert(x) \
-    do {\
-        if (!(x)) {\
-            const char *errstr = zmq_strerror (errno);\
-            fprintf (stderr, "%s (%s:%d)\n", errstr, __FILE__, __LINE__);\
-            abort ();\
-        }\
-    } while (false)
-
-inline void bounce (void *sb, void *sc)
+static void
+bounce (void *sb, void *sc)
 {
     const char *content = "12345678ABCDEFGH12345678abcdefgh";
 
