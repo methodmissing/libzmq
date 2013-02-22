@@ -141,7 +141,6 @@ ZMQ_EXPORT void zmq_version (int *major, int *minor, int *patch);
 #define EMTHREAD (ZMQ_HAUSNUMERO + 54)
 
 /*  SSL specific error codes.                                                 */
-#define ETLSVERIFY (ZMQ_HAUSNUMERO + 59) // XXX: remove
 #define ETLSCA (ZMQ_HAUSNUMERO + 64)
 #define ETLSCERT (ZMQ_HAUSNUMERO + 65)
 #define ETLSKEY (ZMQ_HAUSNUMERO + 66)
