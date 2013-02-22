@@ -52,8 +52,6 @@ const char *zmq::errno_to_string (int errno_)
     case EMTHREAD:
         return "No thread available";
 #ifdef ZMQ_HAVE_TLS
-    case ETLSRSA:
-        return "TLS: Could not set RSA Key";
     case ETLSVERIFY:
         return "TLS: certificate failed verification";
     case ETLSCA:
