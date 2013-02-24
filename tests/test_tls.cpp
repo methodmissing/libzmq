@@ -28,9 +28,11 @@
 #undef NDEBUG
 #include <assert.h>
 
+int rc, val;
 void *req, *rep;
 void *push, *pull;
 
+//  Creates a TLS server socket
 void *tls_server_socket (void *ctx_, int type_, const char *addr_)
 {
     int rc;
@@ -46,12 +48,15 @@ void *tls_server_socket (void *ctx_, int type_, const char *addr_)
     rc = zmq_setsockopt (s, ZMQ_TLS_KEY_FILE, "tls/server.key", 14);
     assert (rc == 0);
 
-    rc = zmq_bind (s, addr_);
-    assert (rc != -1);
+    if (addr_) {
+        rc = zmq_bind (s, addr_);
+        assert (rc != -1);
+    }
 
     return s;
 }
 
+//  Creates a TLS client socket
 void *tls_client_socket (void *ctx_, int type_, const char *addr_)
 {
     int rc;
@@ -67,8 +72,10 @@ void *tls_client_socket (void *ctx_, int type_, const char *addr_)
     rc = zmq_setsockopt (s, ZMQ_TLS_KEY_FILE, "tls/client.key", 14);
     assert (rc == 0);
 
-    rc = zmq_connect (s, addr_);
-    assert (rc != -1);
+    if (addr_) {
+        rc = zmq_connect (s, addr_);
+        assert (rc != -1);
+    }
 
     return s;
 }
@@ -88,6 +95,7 @@ int main (void)
     rep = zmq_socket (ctx, ZMQ_REP);
     assert (rep);
 
+    //  Trusted CA directory socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CA_DIR, "/a/path", 7);
     assert (rc == 0);
 
@@ -97,6 +105,7 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/path", buffer));
 
+    //  Trusted CA file socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CA_FILE, "/a/file", 7);
     assert (rc == 0);
 
@@ -106,6 +115,7 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/file", buffer));
 
+    //  Certificate directory socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_DIR, "/a/path", 7);
     assert (rc == 0);
 
@@ -115,6 +125,7 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/path", buffer));
 
+    //  Certificate file socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_FILE, "/a/file", 7);
     assert (rc == 0);
 
@@ -124,9 +135,30 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/file", buffer));
 
+    //  Certificate file socket option
+    size = sizeof (val);
+    rc = zmq_getsockopt (rep, ZMQ_TLS_VERIFY_PEER, &val, &size);
+    assert (rc == 0);
+    assert (val == 1);
+
+    //  Manipulate the underlying TLS handshake verification
+    val = 0;
+    rc = zmq_setsockopt (rep, ZMQ_TLS_VERIFY_PEER, &val, size);
+    assert (rc == 0);
+
+    rc = zmq_getsockopt (rep, ZMQ_TLS_VERIFY_PEER, &val, &size);
+    assert (rc == 0);
+    assert (val == 0);
+
+    val = 1;
+    rc = zmq_setsockopt (rep, ZMQ_TLS_VERIFY_PEER, &val, size);
+    assert (rc == 0);
+
+    //  Key file socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_KEY_FILE, "/a/file", 7);
     assert (rc == 0);
 
+    //  Assert TLS specific error codes
     size = 7;
     memset (buffer, 0, sizeof (buffer));
     rc = zmq_getsockopt (rep, ZMQ_TLS_KEY_FILE, &buffer, &size);
@@ -154,6 +186,7 @@ int main (void)
     rc = zmq_setsockopt (rep, ZMQ_TLS_KEY_FILE, "tls/server.key", 14);
     assert (rc == 0);
 
+    //  Certificate password socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_PASSWD, "password", 8);
     assert (rc == 0);
 
@@ -166,6 +199,7 @@ int main (void)
     rc = zmq_close (rep);
     assert (rc == 0);
 
+    //  Assert compatibility with unbind and disconnect semantics
     rep = tls_server_socket (ctx, ZMQ_REP, "tls://127.0.0.1:5560");
 
     req = tls_client_socket (ctx, ZMQ_REQ, "tls://127.0.0.1:5560");
@@ -200,6 +234,7 @@ int main (void)
     rc = zmq_close (rep);
     assert (rc == 0);
 
+    //  PUSH / PULL topology
     char buf [32];
     const char *content = "12345678ABCDEFGH12345678abcdefgh";
 

@@ -74,7 +74,7 @@ namespace zmq
 
         int tls_start ();
         int tls_begin ();
-        int tls_continue ();
+        void tls_continue ();
 
         void tls_error ();
 

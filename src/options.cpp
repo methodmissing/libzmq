@@ -54,6 +54,15 @@ zmq::options_t::options_t () :
     tcp_keepalive_cnt (-1),
     tcp_keepalive_idle (-1),
     tcp_keepalive_intvl (-1),
+#ifdef ZMQ_HAVE_TLS
+    tls_ca_dir_size (0),
+    tls_ca_file_size (0),
+    tls_cert_dir_size (0),
+    tls_cert_file_size (0),
+    tls_key_file_size (0),
+    tls_cert_passwd_size (0),
+    tls_verify_peer (true),
+#endif
     socket_id (0)
 {
 }
@@ -309,6 +318,13 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
                 memcpy (tls_cert_passwd, optval_, tls_cert_passwd_size);
                 tls_cert_passwd[tls_cert_passwd_size] = 0;
             }
+            break;
+
+        case ZMQ_TLS_VERIFY_PEER:
+            if (is_int && (value == 0 || value == 1))
+                tls_verify_peer = value;
+            else
+                valid = false;
             break;
 #endif
             
@@ -607,6 +623,15 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         }
         memcpy (optval_, tls_cert_passwd, tls_cert_passwd_size);
         *optvallen_ = tls_cert_passwd_size;
+        return 0;
+
+    case ZMQ_TLS_VERIFY_PEER:
+        if (*optvallen_ < sizeof (int)) {
+            errno = EINVAL;
+            return -1;
+        }
+        *((int*) optval_) = tls_verify_peer;
+        *optvallen_ = sizeof (int);
         return 0;
 #endif
     }

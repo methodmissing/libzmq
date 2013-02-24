@@ -1327,15 +1327,20 @@ int zmq::socket_base_t::tls_init ()
            return -1;
         }
 
-#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
-        SSL_CTX_set_verify_depth (ssl_ctx, 1);
-#endif
-        SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
         SSL_CTX_set_read_ahead (ssl_ctx, 1);
     }
 
-    if (options.tls_ca_file || options.tls_ca_dir) {
-        if (options.tls_ca_file) {
+    if (options.tls_verify_peer) {
+        SSL_CTX_set_verify (ssl_ctx, SSL_VERIFY_PEER, tls_verify_callback);
+#if (OPENSSL_VERSION_NUMBER < 0x00905100L)
+        SSL_CTX_set_verify_depth (ssl_ctx, 1);
+#else
+        SSL_CTX_set_verify_depth (ssl_ctx, 4);
+#endif
+    }
+
+    if (options.tls_ca_file_size || options.tls_ca_dir_size) {
+        if (options.tls_ca_file_size) {
             rc = SSL_CTX_load_verify_locations (ssl_ctx, (const char*)options.tls_ca_file, NULL);
         } else {
             rc = SSL_CTX_load_verify_locations (ssl_ctx, NULL, (const char*)options.tls_ca_dir);
@@ -1346,7 +1351,7 @@ int zmq::socket_base_t::tls_init ()
         }
     }
 
-    if (options.tls_cert_file) {
+    if (options.tls_cert_file_size) {
         rc = SSL_CTX_use_certificate_file (ssl_ctx, (const char*)options.tls_cert_file, SSL_FILETYPE_PEM);
         if (rc != 1) {
             errno = ETLSCERT;
@@ -1354,7 +1359,7 @@ int zmq::socket_base_t::tls_init ()
         }
     }
 
-    if (options.tls_key_file) {
+    if (options.tls_key_file_size) {
         rc = SSL_CTX_use_PrivateKey_file (ssl_ctx, (const char*)options.tls_key_file, SSL_FILETYPE_PEM);
         if (rc != 1) {
             errno = ETLSKEY;

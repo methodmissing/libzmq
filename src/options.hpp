@@ -146,6 +146,8 @@ namespace zmq
         // Password for cert file
         unsigned char tls_cert_passwd [255];
         unsigned char tls_cert_passwd_size;
+
+        bool tls_verify_peer;
 #endif
 
         // TCP accept() filters

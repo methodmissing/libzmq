@@ -86,13 +86,12 @@ int zmq::tls_stream_engine_t::tls_begin ()
         SSL_set_connect_state (ssl);
     }
 
-    if (tls_continue () != 0)
-        return rc;
+    tls_continue ();
 
     return 0;
 }
 
-int zmq::tls_stream_engine_t::tls_continue ()
+void zmq::tls_stream_engine_t::tls_continue ()
 {
     int rc;
 
@@ -114,10 +113,9 @@ int zmq::tls_stream_engine_t::tls_continue ()
          break;
     case SSL_ERROR_ZERO_RETURN:
     default:
-         return (rc != 0) ? rc : -1;
+         if (rc == 0)
+             error ();
     }
-
-    return 0;
 }
 
 void zmq::tls_stream_engine_t::plug (io_thread_t *io_thread_,
@@ -125,8 +123,7 @@ void zmq::tls_stream_engine_t::plug (io_thread_t *io_thread_,
 {
     zmq::stream_engine_t::plug (io_thread_, session_);
     state = TLS_CONNECTING;
-    if (tls_begin () != 0)
-        error ();
+    tls_begin ();
 }
 
 zmq::tls_stream_engine_t::~tls_stream_engine_t ()
@@ -271,8 +268,7 @@ void zmq::tls_stream_engine_t::in_event ()
     }
 
     if (state == TLS_CONNECTING) {
-        if (tls_continue ())
-            tls_error ();
+        tls_continue ();
         return;
     }
 
@@ -293,8 +289,7 @@ void zmq::tls_stream_engine_t::out_event ()
     }
 
     if (state == TLS_CONNECTING) {
-        if (tls_continue ())
-            tls_error ();
+        tls_continue ();
         return;
     }
 
