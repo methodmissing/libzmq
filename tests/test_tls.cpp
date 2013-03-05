@@ -32,6 +32,8 @@ int rc, val;
 void *req, *rep;
 void *paira, *pairb;
 void *router, *dealer;
+void *xpub, *xsub;
+void *pub, *sub;
 void *push, *pull;
 
 //  Creates a TLS server socket
@@ -341,6 +343,58 @@ int main (void)
     rc = zmq_close (router);
     assert (rc == 0);
     rc = zmq_close (dealer);
+    assert (rc == 0);
+
+    //  Subscription forwarding
+
+    //  First, create an intermediate device
+    xpub = tls_server_socket (ctx, ZMQ_XPUB, "tls://127.0.0.1:5560");
+
+    xsub = tls_server_socket (ctx, ZMQ_XSUB, "tls://127.0.0.1:5561");
+
+    //  Create a publisher
+    pub = tls_client_socket (ctx, ZMQ_PUB, "tls://127.0.0.1:5561");
+
+    //  Create a subscriber
+    sub = tls_client_socket (ctx, ZMQ_SUB, "tls://127.0.0.1:5560");
+
+    //  Subscribe for all messages.
+    rc = zmq_setsockopt (sub, ZMQ_SUBSCRIBE, "", 0);
+    assert (rc == 0);
+
+    //  Pass the subscription upstream through the device
+    char b [32];
+    rc = zmq_recv (xpub, b, sizeof (b), 0);
+    assert (rc >= 0);
+    rc = zmq_send (xsub, b, rc, 0);
+    assert (rc >= 0);
+
+    //  Wait a bit till the subscription gets to the publisher
+    struct timespec t = { 0, 250 * 1000000 };
+    nanosleep (&t, NULL);
+
+    //  Send an empty message
+    rc = zmq_send (pub, NULL, 0, 0);
+    assert (rc == 0);
+
+    //  Pass the message downstream through the device
+    rc = zmq_recv (xsub, b, sizeof (b), 0);
+    assert (rc >= 0);
+    rc = zmq_send (xpub, b, rc, 0);
+    assert (rc >= 0);
+
+    //  Receive the message in the subscriber
+    rc = zmq_recv (sub, b, sizeof (b), 0);
+    assert (rc == 0);
+
+    //  Clean up.
+    rc = zmq_close (xpub);
+    assert (rc == 0);
+    rc = zmq_close (xsub);
+    assert (rc == 0);
+    rc = zmq_close (pub);
+    assert (rc == 0);
+    rc = zmq_close (sub);
     assert (rc == 0);
 
     //  PUSH / PULL topology
