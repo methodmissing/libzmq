@@ -31,6 +31,7 @@
 int rc, val;
 void *req, *rep;
 void *paira, *pairb;
+void *router, *dealer;
 void *push, *pull;
 
 //  Creates a TLS server socket
@@ -246,6 +247,100 @@ int main (void)
     assert (rc == 0);
 
     rc = zmq_close (pairb);
+    assert (rc == 0);
+
+    //  ROUTER / DEALER topology
+
+    //  Create a req/rep device.
+    dealer = tls_server_socket (ctx, ZMQ_DEALER, "tls://127.0.0.1:5560");
+
+    router = tls_server_socket (ctx, ZMQ_ROUTER, "tls://127.0.0.1:5561");
+
+    //  Create a worker.
+    rep = tls_client_socket (ctx, ZMQ_REP, "tls://127.0.0.1:5560");
+
+    //  Create a client.
+    req = tls_client_socket (ctx, ZMQ_REQ, "tls://127.0.0.1:5561");
+
+    //  Send a request.
+    rc = zmq_send (req, "ABC", 3, ZMQ_SNDMORE);
+    assert (rc == 3);
+    rc = zmq_send (req, "DEF", 3, 0);
+    assert (rc == 3);
+
+    //  Pass the request through the device.
+    for (int i = 0; i != 4; i++) {
+        zmq_msg_t msg;
+        rc = zmq_msg_init (&msg);
+        assert (rc == 0);
+        rc = zmq_msg_recv (&msg, router, 0);
+        assert (rc >= 0);
+        int rcvmore;
+        size_t sz = sizeof (rcvmore);
+        rc = zmq_getsockopt (router, ZMQ_RCVMORE, &rcvmore, &sz);
+        assert (rc == 0);
+        rc = zmq_msg_send (&msg, dealer, rcvmore? ZMQ_SNDMORE: 0);
+        assert (rc >= 0);
+    }
+
+    //  Receive the request.
+    char buff [3];
+    rc = zmq_recv (rep, buff, 3, 0);
+    assert (rc == 3);
+    assert (memcmp (buff, "ABC", 3) == 0);
+    int rcvmore;
+    size_t sz = sizeof (rcvmore);
+    rc = zmq_getsockopt (rep, ZMQ_RCVMORE, &rcvmore, &sz);
+    assert (rc == 0);
+    assert (rcvmore);
+    rc = zmq_recv (rep, buff, 3, 0);
+    assert (rc == 3);
+    assert (memcmp (buff, "DEF", 3) == 0);
+    rc = zmq_getsockopt (rep, ZMQ_RCVMORE, &rcvmore, &sz);
+    assert (rc == 0);
+    assert (!rcvmore);
+
+    //  Send the reply.
+    rc = zmq_send (rep, "GHI", 3, ZMQ_SNDMORE);
+    assert (rc == 3);
+    rc = zmq_send (rep, "JKL", 3, 0);
+    assert (rc == 3);
+
+    //  Pass the reply through the device.
+    for (int i = 0; i != 4; i++) {
+        zmq_msg_t msg;
+        rc = zmq_msg_init (&msg);
+        assert (rc == 0);
+        rc = zmq_msg_recv (&msg, dealer, 0);
+        assert (rc >= 0);
+        int rcvmore;
+        rc = zmq_getsockopt (dealer, ZMQ_RCVMORE, &rcvmore, &sz);
+        assert (rc == 0);
+        rc = zmq_msg_send (&msg, router, rcvmore? ZMQ_SNDMORE: 0);
+        assert (rc >= 0);
+    }
+
+    //  Receive the reply.
+    rc = zmq_recv (req, buff, 3, 0);
+    assert (rc == 3);
+    assert (memcmp (buff, "GHI", 3) == 0);
+    rc = zmq_getsockopt (req, ZMQ_RCVMORE, &rcvmore, &sz);
+    assert (rc == 0);
+    assert (rcvmore);
+    rc = zmq_recv (req, buff, 3, 0);
+    assert (rc == 3);
+    assert (memcmp (buff, "JKL", 3) == 0);
+    rc = zmq_getsockopt (req, ZMQ_RCVMORE, &rcvmore, &sz);
+    assert (rc == 0);
+    assert (!rcvmore);
+
+    rc = zmq_close (req);
+    assert (rc == 0);
+    rc = zmq_close (rep);
+    assert (rc == 0);
+    rc = zmq_close (router);
+    assert (rc == 0);
+    rc = zmq_close (dealer);
     assert (rc == 0);
 
     //  PUSH / PULL topology
