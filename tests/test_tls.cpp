@@ -30,6 +30,7 @@
 
 int rc, val;
 void *req, *rep;
+void *paira, *pairb;
 void *push, *pull;
 
 //  Creates a TLS server socket
@@ -232,6 +233,19 @@ int main (void)
     assert (rc == 0);
 
     rc = zmq_close (rep);
+    assert (rc == 0);
+
+    //  PAIR topology
+    paira = tls_server_socket (ctx, ZMQ_PAIR, "tls://127.0.0.1:5580");
+
+    pairb = tls_client_socket (ctx, ZMQ_PAIR, "tls://127.0.0.1:5580");
+    
+    bounce (paira, pairb);
+
+    rc = zmq_close (paira);
+    assert (rc == 0);
+
+    rc = zmq_close (pairb);
     assert (rc == 0);
 
     //  PUSH / PULL topology
