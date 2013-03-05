@@ -157,7 +157,7 @@ int zmq::ctx_t::set (int option_, int optval_)
     else
     if (option_ == ZMQ_IPV6 && optval_ >= 0) {
         opt_sync.lock ();
-        ipv6 = optval_;
+        ipv6 = (optval_ != 0);
         opt_sync.unlock ();
     }
     else {

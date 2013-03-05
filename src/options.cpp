@@ -153,7 +153,7 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
         case ZMQ_RECONNECT_IVL_MAX:
             if (is_int && value >= 0)
                 reconnect_ivl_max = value;
-            else
+            else 
                 valid = false;
             break;
 
@@ -169,6 +169,7 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
                 maxmsgsize = *((int64_t *) optval_);
             else
                 valid = false;
+            break;
 
         case ZMQ_MULTICAST_HOPS:
             if (is_int && value > 0)
@@ -194,7 +195,7 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
         /*  Deprecated in favor of ZMQ_IPV6  */
         case ZMQ_IPV4ONLY:
             if (is_int && (value == 0 || value == 1))
-                ipv6 = 1 - value;
+                ipv6 = (value == 0);
             else
                 valid = false;
             break;
@@ -202,7 +203,7 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
         /*  To replace the somewhat surprising IPV4ONLY */
         case ZMQ_IPV6:
             if (is_int && (value == 0 || value == 1))
-                ipv6 = value;
+                ipv6 = (value != 0);
             else
                 valid = false;
             break;
