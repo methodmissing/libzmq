@@ -57,7 +57,6 @@ zmq::options_t::options_t () :
 #ifdef ZMQ_HAVE_TLS
     tls_ca_dir_size (0),
     tls_ca_file_size (0),
-    tls_cert_dir_size (0),
     tls_cert_file_size (0),
     tls_key_file_size (0),
     tls_cert_passwd_size (0),
@@ -278,16 +277,6 @@ int zmq::options_t::setsockopt (int option_, const void *optval_,
                 tls_ca_file_size = optvallen_ + 1;
                 memcpy (tls_ca_file, optval_, tls_ca_file_size);
                 tls_ca_file[tls_ca_file_size] = 0;
-            }
-            break;
-
-        case ZMQ_TLS_CERT_DIR:
-            if (optvallen_ < 1 || optvallen_ > 255) {
-                valid = false;
-            } else {
-                tls_cert_dir_size = optvallen_ + 1;
-                memcpy (tls_cert_dir, optval_, tls_cert_dir_size);
-                tls_cert_dir[tls_cert_dir_size] = 0;
             }
             break;
 
@@ -588,15 +577,6 @@ int zmq::options_t::getsockopt (int option_, void *optval_, size_t *optvallen_)
         }
         memcpy (optval_, tls_ca_file, tls_ca_file_size);
         *optvallen_ = tls_ca_file_size;
-        return 0;
-
-    case ZMQ_TLS_CERT_DIR:
-        if (*optvallen_ + 1 < tls_cert_dir_size) {
-            errno = EINVAL;
-            return -1;
-        }
-        memcpy (optval_, tls_cert_dir, tls_cert_dir_size);
-        *optvallen_ = tls_cert_dir_size;
         return 0;
 
     case ZMQ_TLS_CERT_FILE:

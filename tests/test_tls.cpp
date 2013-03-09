@@ -119,16 +119,6 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/file", buffer));
 
-    //  Certificate directory socket option
-    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_DIR, "/a/path", 7);
-    assert (rc == 0);
-
-    size = 7;
-    memset (buffer, 0, sizeof (buffer));
-    rc = zmq_getsockopt (rep, ZMQ_TLS_CERT_DIR, &buffer, &size);
-    assert (rc == 0);
-    assert (!strcmp ("/a/path", buffer));
-
     //  Certificate file socket option
     rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_FILE, "/a/file", 7);
     assert (rc == 0);

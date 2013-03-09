@@ -131,10 +131,6 @@ namespace zmq
         unsigned char tls_ca_file [255];
         unsigned char tls_ca_file_size;
 
-        // Directory to SSL certs
-        unsigned char tls_cert_dir [255];
-        unsigned char tls_cert_dir_size;
-
         // Path to SSL cert
         unsigned char tls_cert_file [255];
         unsigned char tls_cert_file_size;
