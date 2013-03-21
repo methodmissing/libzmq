@@ -1,8 +1,5 @@
 /*
-    Copyright (c) 2009-2011 250bpm s.r.o.
-    Copyright (c) 2007-2009 iMatix Corporation
-    Copyright (c) 2010-2011 Miru Limited
-    Copyright (c) 2007-2011 Other contributors as noted in the AUTHORS file
+    Copyright (c) 2007-2013 Contributors as noted in the AUTHORS file
 
     This file is part of 0MQ.
 
@@ -36,7 +33,7 @@
 #include "i_engine.hpp"
 #include "options.hpp"
 #include "pgm_socket.hpp"
-#include "encoder.hpp"
+#include "v1_encoder.hpp"
 
 namespace zmq
 {
@@ -79,7 +76,7 @@ namespace zmq
         bool has_rx_timer;
 
         //  Message encoder.
-        encoder_t encoder;
+        v1_encoder_t encoder;
 
         //  PGM socket.
         pgm_socket_t pgm_socket;

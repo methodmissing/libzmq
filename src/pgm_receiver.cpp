@@ -1,8 +1,5 @@
 /*
-    Copyright (c) 2009-2011 250bpm s.r.o.
-    Copyright (c) 2007-2009 iMatix Corporation
-    Copyright (c) 2010-2011 Miru Limited
-    Copyright (c) 2007-2011 Other contributors as noted in the AUTHORS file
+    Copyright (c) 2007-2013 Contributors as noted in the AUTHORS file
 
     This file is part of 0MQ.
 
@@ -32,6 +29,7 @@
 
 #include "pgm_receiver.hpp"
 #include "session_base.hpp"
+#include "v1_decoder.hpp"
 #include "stdint.hpp"
 #include "wire.hpp"
 #include "err.hpp"
@@ -230,8 +228,8 @@ void zmq::pgm_receiver_t::in_event ()
             it->second.joined = true;
 
             //  Create and connect decoder for the peer.
-            it->second.decoder = new (std::nothrow) decoder_t (0,
-                options.maxmsgsize);
+            it->second.decoder = new (std::nothrow)
+                v1_decoder_t (0, options.maxmsgsize);
             alloc_assert (it->second.decoder);
             it->second.decoder->set_msg_sink (session);
         }
