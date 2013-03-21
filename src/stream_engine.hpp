@@ -110,10 +110,6 @@ namespace zmq
         //  Detects the protocol used by the peer.
         bool handshake ();
 
-        //  Size of the greeting message:
-        //  Preamble (10 bytes) + version (1 byte) + socket type (1 byte).
-        static const size_t greeting_size = 12;
-
         unsigned char *inpos;
         size_t insize;
         i_decoder *decoder;
