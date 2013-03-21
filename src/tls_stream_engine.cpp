@@ -62,8 +62,6 @@ int zmq::tls_stream_engine_t::tls_start ()
 
 int zmq::tls_stream_engine_t::tls_begin ()
 {
-    int rc;
-
     assert (state = TLS_CONNECTING);
 
     SSL_set_app_data (ssl, this);
@@ -94,6 +92,9 @@ int zmq::tls_stream_engine_t::tls_begin ()
 void zmq::tls_stream_engine_t::tls_continue ()
 {
     int rc;
+    X509 *peer_cert;
+    X509_name_st* name;
+    char cname[512];
 
     assert (state == TLS_CONNECTING);
 
@@ -116,6 +117,33 @@ void zmq::tls_stream_engine_t::tls_continue ()
          if (rc == 0)
              error ();
     }
+
+    long verify_result = SSL_get_verify_result (ssl);
+    if (verify_result == X509_V_OK) {
+        peer_cert = SSL_get_peer_certificate (ssl);
+        if (options.tls_cert_common_name_size && peer_cert) {
+            name = X509_get_subject_name (peer_cert);
+            X509_NAME_get_text_by_NID (name, NID_commonName, cname, 512);
+            cname[sizeof(cname)-1] = 0;
+            if (strcmp ((const char *)options.tls_cert_common_name, cname) != 0) {
+                errno = ETLSCNAME;
+                goto error;
+            }
+        }
+    } else {
+        errno = ETLSVERIFY;
+        goto error;
+    }
+
+    X509_free (peer_cert);
+    return;
+
+error:
+    int err = errno;
+    tls_error ();
+    rm_fd (handle);
+    io_enabled = false;
+    errno = err;
 }
 
 void zmq::tls_stream_engine_t::plug (io_thread_t *io_thread_,

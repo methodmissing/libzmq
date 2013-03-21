@@ -152,6 +152,8 @@ ZMQ_EXPORT void zmq_version (int *major, int *minor, int *patch);
 #define ETLSCTX (ZMQ_HAUSNUMERO + 69)
 #define ETLSCIPHER (ZMQ_HAUSNUMERO + 70)
 #define ETLS (ZMQ_HAUSNUMERO + 71)
+#define ETLSVERIFY (ZMQ_HAUSNUMERO + 72)
+#define ETLSCNAME (ZMQ_HAUSNUMERO + 73)
 
 /*  This function retrieves the errno as it is known to 0MQ library. The goal */
 /*  of this function is to make the code 100% portable, including where 0MQ   */
@@ -272,6 +274,7 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_TLS_KEY_FILE 46
 #define ZMQ_TLS_CERT_PASSWD 47
 #define ZMQ_TLS_VERIFY_PEER 48
+#define ZMQ_TLS_CERT_COMMON_NAME 49
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1

@@ -85,6 +85,15 @@ namespace zmq
 
         bool plugged;
 
+        options_t options;
+
+        //  True iff we are registered with an I/O poller.
+        bool io_enabled;
+
+        handle_t handle;
+
+        bool terminating;
+
     private:
 
         //  Underlying socket.
@@ -99,11 +108,6 @@ namespace zmq
         //  Size of the greeting message:
         //  Preamble (10 bytes) + version (1 byte) + socket type (1 byte).
         static const size_t greeting_size = 12;
-
-        //  True iff we are registered with an I/O poller.
-        bool io_enabled;
-
-        handle_t handle;
 
         unsigned char *inpos;
         size_t insize;
@@ -133,12 +137,8 @@ namespace zmq
         //  The session this engine is attached to.
         zmq::session_base_t *session;
 
-        options_t options;
-
         // String representation of endpoint
         std::string endpoint;
-
-        bool terminating;
 
         // Socket
         zmq::socket_base_t *socket;

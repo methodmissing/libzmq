@@ -52,8 +52,10 @@
 
 zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, const std::string &endpoint_) :
     plugged (false),
-    s (fd_),
+    options (options_),
     io_enabled (false),
+    terminating (false),
+    s (fd_),
     inpos (NULL),
     insize (0),
     decoder (NULL),
@@ -63,9 +65,7 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, cons
     handshaking (true),
     greeting_bytes_read (0),
     session (NULL),
-    options (options_),
     endpoint (endpoint_),
-    terminating (false),
     socket (NULL)
 {
     //  Put the socket into non-blocking mode.

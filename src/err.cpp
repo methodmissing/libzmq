@@ -68,6 +68,10 @@ const char *zmq::errno_to_string (int errno_)
         return "TLS: Could not set ciphers";
     case ETLS:
         return "TLS: Could not create SSL object";
+    case ETLSVERIFY:
+        return "TLS: Certificate verification failed";
+    case ETLSCNAME:
+        return "TLS: Error validating peer certificate common name";	
 #endif
     default:
 #if defined _MSC_VER

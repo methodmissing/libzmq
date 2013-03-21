@@ -129,7 +129,17 @@ int main (void)
     assert (rc == 0);
     assert (!strcmp ("/a/file", buffer));
 
-    //  Certificate file socket option
+    //  Common name socket option
+    rc = zmq_setsockopt (rep, ZMQ_TLS_CERT_COMMON_NAME, "zeromq.org", 10);
+    assert (rc == 0);
+
+    size = 10;
+    memset (buffer, 0, sizeof (buffer));
+    rc = zmq_getsockopt (rep, ZMQ_TLS_CERT_COMMON_NAME, &buffer, &size);
+    assert (rc == 0);
+    assert (!strcmp ("zeromq.org", buffer));
+
+    //  Peer validation
     size = sizeof (val);
     rc = zmq_getsockopt (rep, ZMQ_TLS_VERIFY_PEER, &val, &size);
     assert (rc == 0);
@@ -193,31 +203,70 @@ int main (void)
     rc = zmq_close (rep);
     assert (rc == 0);
 
-    //  Assert compatibility with unbind and disconnect semantics
+    //  Verification
     rep = tls_server_socket (ctx, ZMQ_REP, "tls://127.0.0.1:5560");
 
-    req = tls_client_socket (ctx, ZMQ_REQ, "tls://127.0.0.1:5560");
+    req = tls_client_socket (ctx, ZMQ_REQ, NULL);
+
+    rc = zmq_setsockopt (req, ZMQ_TLS_CERT_COMMON_NAME, "localhost-test", 14);
+    assert (rc == 0);
+
+    rc = zmq_connect (req, "tls://127.0.0.1:5560");
 
     zmq_sleep (1);
 
     bounce (rep, req);
 
-    rc = zmq_unbind (rep, "tls://127.0.0.1:5560");
+    rc = zmq_close (req);
     assert (rc == 0);
 
-    zmq_sleep (1);
-
-    rc = zmq_bind (rep, "tls://127.0.0.1:5560");
+    rc = zmq_close (rep);
     assert (rc == 0);
 
-    zmq_sleep (1);
+    rep = tls_server_socket (ctx, ZMQ_REP, "tls://127.0.0.1:5560");
 
-    rc = zmq_disconnect (req, "tls://127.0.0.1:5560");
+    req = tls_client_socket (ctx, ZMQ_REQ, NULL);
+
+    rc = zmq_setsockopt (req, ZMQ_TLS_CERT_COMMON_NAME, "zeromq.org", 10);
     assert (rc == 0);
-
-    zmq_sleep (1);
 
     rc = zmq_connect (req, "tls://127.0.0.1:5560");
+
+    char buff[3];
+    rc = zmq_send (req, "ABC", 3, ZMQ_DONTWAIT);
+    assert (rc == 3);
+    rc = zmq_recv (rep, buff, sizeof (buff), ZMQ_DONTWAIT);
+    assert (rc == -1);
+
+    rc = zmq_close (req);
+    assert (rc == 0);
+
+    rc = zmq_close (rep);
+    assert (rc == 0);
+
+    //  Assert compatibility with unbind and disconnect semantics
+    rep = tls_server_socket (ctx, ZMQ_REP, "tls://127.0.0.1:5562");
+
+    req = tls_client_socket (ctx, ZMQ_REQ, "tls://127.0.0.1:5562");
+
+    bounce (rep, req);
+
+    rc = zmq_unbind (rep, "tls://127.0.0.1:5562");
+    assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_bind (rep, "tls://127.0.0.1:5562");
+    assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_disconnect (req, "tls://127.0.0.1:5562");
+    assert (rc == 0);
+
+    zmq_sleep (1);
+
+    rc = zmq_connect (req, "tls://127.0.0.1:5562");
     assert (rc == 0);
 
     bounce (rep, req);
@@ -276,7 +325,6 @@ int main (void)
     }
 
     //  Receive the request.
-    char buff [3];
     rc = zmq_recv (rep, buff, 3, 0);
     assert (rc == 3);
     assert (memcmp (buff, "ABC", 3) == 0);

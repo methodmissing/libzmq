@@ -144,6 +144,10 @@ namespace zmq
         unsigned char tls_cert_passwd_size;
 
         bool tls_verify_peer;
+
+        // Common name to validate
+        unsigned char tls_cert_common_name [255];
+        unsigned char tls_cert_common_name_size;
 #endif
 
         // TCP accept() filters
