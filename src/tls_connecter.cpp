@@ -107,12 +107,7 @@ void zmq::tls_connecter_t::out_event ()
 
 void zmq::tls_connecter_t::close ()
 {
-    if (ssl) {
-        if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
-            SSL_shutdown (ssl);
-        SSL_free (ssl);
-        ssl = NULL;
-    }
+    tls_term ();
 
     zmq::tcp_connecter_t::close ();
 }
@@ -126,6 +121,16 @@ int zmq::tls_connecter_t::tls_init ()
     }
 
     return 0;
+}
+
+void zmq::tls_connecter_t::tls_term ()
+{
+    if (ssl) {
+        if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
+            SSL_shutdown (ssl);
+        SSL_free (ssl);
+        ssl = NULL;
+    }
 }
 
 #endif

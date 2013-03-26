@@ -78,6 +78,8 @@ namespace zmq
 
         void tls_error ();
 
+        void tls_term ();
+
         enum tls_state {
             TLS_NONE, TLS_WAIT, TLS_CONNECTING, TLS_CONNECTED, TLS_ERROR
         };

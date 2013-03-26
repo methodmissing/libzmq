@@ -166,13 +166,23 @@ void zmq::tls_stream_engine_t::unplug ()
     zmq::stream_engine_t::unplug ();
 }
 
-void zmq::tls_stream_engine_t::tls_error ()
+void zmq::tls_stream_engine_t::tls_term ()
 {
     int rc;
+    if (ssl) {
+        rc = SSL_shutdown (ssl);
+        if (rc == 0)
+            SSL_shutdown (ssl);
+        SSL_free (ssl);
+        ssl = NULL;
+    }
+}
+
+void zmq::tls_stream_engine_t::tls_error ()
+{
     state = TLS_ERROR;
-    rc = SSL_shutdown (ssl);
-    if (rc == 0)
-        SSL_shutdown (ssl);
+
+    tls_term ();
 }
 
 void zmq::tls_stream_engine_t::error ()
