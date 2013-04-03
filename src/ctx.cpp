@@ -27,6 +27,7 @@
 #include <new>
 #include <string.h>
 
+#include "platform.hpp"
 #include "ctx.hpp"
 #include "socket_base.hpp"
 #include "io_thread.hpp"
@@ -36,9 +37,18 @@
 #include "msg.hpp"
 
 #ifdef ZMQ_HAVE_TLS
-#include <openssl/ssl.h>
-#include <openssl/bio.h>
-#include <openssl/err.h>
+#include "tls.hpp"
+
+struct CRYPTO_dynlock_value
+{
+    MUTEX_TYPE mutex;
+};
+
+namespace zmq
+{
+        //  OpenSSL mutexes
+        static MUTEX_TYPE* tls_mutexes = NULL;
+}
 #endif
 
 zmq::ctx_t::ctx_t () :
@@ -53,14 +63,84 @@ zmq::ctx_t::ctx_t () :
     ipv6 (false)
 {
 #ifdef ZMQ_HAVE_TLS
-    if (!SSL_library_init()) {
-        CRYPTO_malloc_init();
-        SSL_load_error_strings();
-        ERR_load_BIO_strings();
-        OpenSSL_add_all_algorithms();
-    }
+    tls_init ();
 #endif
 }
+
+#ifdef ZMQ_HAVE_TLS
+
+   //  Dynamic OpenSSL locks
+
+CRYPTO_dynlock_value* zmq::ctx_t::tls_dyn_create (const char* file_, int line_) {
+    CRYPTO_dynlock_value* value = new CRYPTO_dynlock_value;
+    if (!value)
+        return NULL;
+    MUTEX_SETUP (value->mutex);
+    return value;
+}
+
+void zmq::ctx_t::tls_dyn_lock (int mode, CRYPTO_dynlock_value* l_, const char* file_, int line_) {
+    if (mode & CRYPTO_LOCK) {
+        MUTEX_LOCK (l_->mutex);
+    } else {
+        MUTEX_UNLOCK (l_->mutex);
+    }
+}
+
+void zmq::ctx_t::tls_dyn_destroy (CRYPTO_dynlock_value* l_, const char* file_, int line_) {
+    MUTEX_CLEANUP (l_->mutex);
+    delete l_;
+}
+
+    //  Static OpenSSL locks
+
+void zmq::ctx_t::tls_locking_function (int mode_, int n_, const char *file_, int line_) {
+    if (mode_ & CRYPTO_LOCK) {
+        MUTEX_LOCK (zmq::tls_mutexes[n_]);
+    } else {
+        MUTEX_LOCK (zmq::tls_mutexes[n_]);
+    }
+}
+
+unsigned long zmq::ctx_t::tls_id_function () {
+    return ((unsigned long)THREAD_ID);
+}
+
+void zmq::ctx_t::tls_init ()
+{
+    if (zmq::tls_mutexes != NULL)
+        return;
+    zmq::tls_mutexes = new MUTEX_TYPE[CRYPTO_num_locks()];
+    for (int i = 0; i < CRYPTO_num_locks(); ++i)
+        MUTEX_SETUP (tls_mutexes[i]);
+
+    SSL_library_init ();
+    SSL_load_error_strings();
+    ERR_load_BIO_strings();
+    OpenSSL_add_all_algorithms();
+    RAND_poll();
+
+    CRYPTO_set_id_callback((unsigned long (*)())zmq::ctx_t::tls_id_function);
+    CRYPTO_set_locking_callback(zmq::ctx_t::tls_locking_function);
+    CRYPTO_set_dynlock_create_callback (zmq::ctx_t::tls_dyn_create);
+    CRYPTO_set_dynlock_lock_callback (zmq::ctx_t::tls_dyn_lock);
+    CRYPTO_set_dynlock_destroy_callback (zmq::ctx_t::tls_dyn_destroy);
+}
+
+void zmq::ctx_t::tls_term ()
+{
+    CRYPTO_set_id_callback (NULL);
+    CRYPTO_set_locking_callback (NULL);
+    CRYPTO_set_dynlock_create_callback (NULL);
+    CRYPTO_set_dynlock_lock_callback (NULL);
+    CRYPTO_set_dynlock_destroy_callback (NULL);
+
+    for (int i = 0; i < CRYPTO_num_locks(); ++i)
+        MUTEX_CLEANUP (zmq::tls_mutexes[i]);
+    delete [] zmq::tls_mutexes;
+    zmq::tls_mutexes = NULL;
+}
+#endif
 
 bool zmq::ctx_t::check_tag ()
 {
@@ -93,6 +173,10 @@ zmq::ctx_t::~ctx_t ()
 
     //  Remove the tag, so that the object is considered dead.
     tag = 0xdeadbeef;
+
+#ifdef ZMQ_HAVE_TLS
+    tls_term ();
+#endif
 }
 
 int zmq::ctx_t::terminate ()

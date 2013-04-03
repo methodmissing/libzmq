@@ -29,6 +29,26 @@
 
 #include "windows.hpp"
 
+#define MUTEX_TYPE CRITICAL_SECTION
+#define MUTEX_SETUP(x) InitializeCriticalSection(&(x))
+#define MUTEX_CLEANUP(x) DeleteCriticalSection(&(x))
+#define MUTEX_LOCK(x) EnterCriticalSection(&(x))
+#define MUTEX_UNLOCK(x) LeaveCriticalSection(&(x))
+#define THREAD_ID GetCurrentThreadId()
+
+#else
+
+#include <pthread.h>
+
+#define MUTEX_TYPE pthread_mutex_t
+#define MUTEX_SETUP(x) pthread_mutex_init(&(x), NULL)
+#define MUTEX_CLEANUP(x) pthread_mutex_destroy(&(x))
+#define MUTEX_LOCK(x) pthread_mutex_lock(&(x))
+#define MUTEX_UNLOCK(x) pthread_mutex_unlock(&(x))
+#define THREAD_ID pthread_self()
+
+#endif
+
 namespace zmq
 {
 
@@ -37,27 +57,27 @@ namespace zmq
     public:
         inline mutex_t ()
         {
-            InitializeCriticalSection (&cs);
+            MUTEX_SETUP (mutex);
         }
 
         inline ~mutex_t ()
         {
-            DeleteCriticalSection (&cs);
+            MUTEX_CLEANUP (mutex);
         }
 
         inline void lock ()
         {
-            EnterCriticalSection (&cs);
+            MUTEX_LOCK (mutex);
         }
 
         inline void unlock ()
         {
-            LeaveCriticalSection (&cs);
+            MUTEX_UNLOCK (mutex);
         }
 
     private:
 
-        CRITICAL_SECTION cs;
+        MUTEX_TYPE mutex;
 
         //  Disable copy construction and assignment.
         mutex_t (const mutex_t&);
@@ -65,52 +85,5 @@ namespace zmq
     };
 
 }
-
-#else
-
-#include <pthread.h>
-
-namespace zmq
-{
-
-    class mutex_t
-    {
-    public:
-        inline mutex_t ()
-        {
-            int rc = pthread_mutex_init (&mutex, NULL);
-            posix_assert (rc);
-        }
-
-        inline ~mutex_t ()
-        {
-            int rc = pthread_mutex_destroy (&mutex);
-            posix_assert (rc);
-        }
-
-        inline void lock ()
-        {
-            int rc = pthread_mutex_lock (&mutex);
-            posix_assert (rc);
-        }
-
-        inline void unlock ()
-        {
-            int rc = pthread_mutex_unlock (&mutex);
-            posix_assert (rc);
-        }
-
-    private:
-
-        pthread_mutex_t mutex;
-
-        // Disable copy construction and assignment.
-        mutex_t (const mutex_t&);
-        const mutex_t &operator = (const mutex_t&);
-    };
-
-}
-
-#endif
 
 #endif

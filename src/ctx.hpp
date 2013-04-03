@@ -100,6 +100,22 @@ namespace zmq
 
         ~ctx_t ();
 
+#ifdef ZMQ_HAVE_TLS
+        static void tls_locking_function(int mode_, int n_, const char * file_, int line_);
+
+        static unsigned long tls_id_function();
+
+        static CRYPTO_dynlock_value* tls_dyn_create (const char* file_, int line_);
+
+        static void tls_dyn_lock (int mode, CRYPTO_dynlock_value* l_, const char* file_, int line_);
+
+        static void tls_dyn_destroy (CRYPTO_dynlock_value* l_, const char* file_, int line_);
+
+        void tls_init ();
+
+        void tls_term ();
+#endif
+
     private:
 
 

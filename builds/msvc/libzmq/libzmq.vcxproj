@@ -299,6 +299,7 @@
     <ClInclude Include="..\..\..\src\thread.hpp" />
     <ClInclude Include="..\..\..\src\tls_connecter.hpp" />
     <ClInclude Include="..\..\..\src\tls_listener.hpp" />
+    <ClInclude Include="..\..\..\src\tls_stream_engine.hpp" />
     <ClInclude Include="..\..\..\src\trie.hpp" />
     <ClInclude Include="..\..\..\src\v1_decoder.hpp" />
     <ClInclude Include="..\..\..\src\v1_encoder.hpp" />

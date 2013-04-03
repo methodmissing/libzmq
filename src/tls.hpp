@@ -28,6 +28,9 @@
 #include <openssl/ssl.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <openssl/crypto.h>
+#include <openssl/rand.h>
+#include <openssl/opensslconf.h>
 
 #include "../include/zmq.h"
 
