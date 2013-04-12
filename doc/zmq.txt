@@ -159,6 +159,9 @@ The following transport mechanisms are provided:
 Unicast transport using TCP::
     linkzmq:zmq_tcp[7]
 
+Secure TLS transport::
+    linkzmq:zmq_tls[7]
+
 Reliable multicast transport using PGM::
     linkzmq:zmq_pgm[7]
 

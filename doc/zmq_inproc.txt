@@ -75,6 +75,7 @@ linkzmq:zmq_bind[3]
 linkzmq:zmq_connect[3]
 linkzmq:zmq_ipc[7]
 linkzmq:zmq_tcp[7]
+linkzmq:zmq_tls[7]
 linkzmq:zmq_pgm[7]
 linkzmq:zmq[7]
 

@@ -24,6 +24,7 @@ The 'endpoint' is a string consisting of a 'transport'`://` followed by an
 0MQ provides the the following transports:
 
 'tcp':: unicast transport using TCP, see linkzmq:zmq_tcp[7]
+'tls':: secure TLS transport, see linkzmq:zmq_tls[7]
 'ipc':: local inter-process communication transport, see linkzmq:zmq_ipc[7]
 'inproc':: local in-process (inter-thread) communication transport, see linkzmq:zmq_inproc[7]
 'pgm', 'epgm':: reliable multicast transport using PGM, see linkzmq:zmq_pgm[7]

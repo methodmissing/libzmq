@@ -485,6 +485,86 @@ Default value:: -1 (leave to OS default)
 Applicable socket types:: all, when using TCP transports.
 
 
+ZMQ_TLS_CA_DIR: Retrieve directory path to trusted CA certs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Directory path to trusted CA certificates in PEM format. Each file should contain
+a single certificate. Has lower priority than 'ZMQ_TLS_CA_FILE'.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_CA_FILE: Retrieve file path to trusted CA certs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+File path to trusted CA certificates in PEM format. The file may contain several
+certificates and has higher priority than 'ZMQ_TLS_CA_DIR'.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_CERT_FILE: Retrieve file path to certificate
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+File path to certificate in PEM format. Only the first certificate found will be
+used.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_KEY_FILE: Retrieve file path to private key
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+File path to private key in PEM format. Only the first key found will be used.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_CERT_PASSWORD: Retrieve the certificate password
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Certificate password to use.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_VERIFY_PEER: Retrieve the peer certificate verify flag
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sets the verification flag.
+
+[horizontal]
+Option value type:: int
+Option value unit:: boolean
+Default value:: 0 (false)
+Applicable socket types:: all, when using TLS transports.
+
+
+ZMQ_TLS_CERT_COMMON_NAME: Retrieve expected peer certificate common name
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Peer certificate common name to validate against.
+
+[horizontal]
+Option value type:: binary data
+Option value unit:: N/A
+Default value:: N/A
+Applicable socket types:: all, when using TLS transports.
+
+
 RETURN VALUE
 ------------
 The _zmq_getsockopt()_ function shall return zero if successful. Otherwise it

@@ -10,7 +10,7 @@ MAN3 = zmq_bind.3 zmq_unbind.3 zmq_connect.3 zmq_disconnect.3 zmq_close.3 \
     zmq_errno.3 zmq_strerror.3 zmq_version.3 zmq_proxy.3 \
     zmq_sendmsg.3 zmq_recvmsg.3 zmq_init.3 zmq_term.3
 
-MAN7 = zmq.7 zmq_tcp.7 zmq_pgm.7 zmq_epgm.7 zmq_inproc.7 zmq_ipc.7
+MAN7 = zmq.7 zmq_tcp.7 zmq_tls.7 zmq_pgm.7 zmq_epgm.7 zmq_inproc.7 zmq_ipc.7
 
 MAN_DOC = $(MAN1) $(MAN3) $(MAN7)
 

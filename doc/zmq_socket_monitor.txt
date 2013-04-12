@@ -33,8 +33,8 @@ See 'Supported events' below for details.
 
 ----
 
-Only connection oriented (tcp and ipc) transports are supported in this initial
-implementation.
+Only connection oriented (tcp, tls and ipc) transports are supported in this
+initial implementation.
 
 ----
 

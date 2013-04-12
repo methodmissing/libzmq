@@ -1,0 +1,165 @@
+zmq_tls(7)
+==========
+
+
+NAME
+----
+zmq_tls - secure 0MQ unicast transport using TLS
+
+
+SYNOPSIS
+--------
+When connecting distributed applications over a network where security is
+very important, using the TLS transport will likely be your first choice.
+
+
+ADDRESSING
+----------
+A 0MQ endpoint is a string consisting of a 'transport'`://` followed by an
+'address'. The 'transport' specifies the underlying protocol to use. The
+'address' specifies the transport-specific address to connect to.
+
+For the TLS transport, the transport is `tls`, and the meaning of the
+'address' part is defined below.
+
+
+Assigning a local address to a socket
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+When assigning a local address to a socket using _zmq_bind()_ with the 'tls'
+transport, the 'endpoint' shall be interpreted as an 'interface' followed by a
+colon and the TCP port number to use.
+
+An 'interface' may be specified by either of the following:
+
+* The wild-card `*`, meaning all available interfaces.
+* The primary IPv4 or IPv6 address assigned to the interface, in its numeric
+  representation.
+* The non-portable interface name as defined by the operating system.
+
+The TCP port number may be specified by:
+
+* A numeric value, usually above 1024 on POSIX systems.
+* The wild-card `*`, meaning a system-assigned ephemeral port.
+
+When using ephemeral ports, the caller should retrieve the actual assigned
+port using the ZMQ_LAST_ENDPOINT socket option. See linkzmq:zmq_getsockopt[3]
+for details.
+
+
+Connecting a socket
+~~~~~~~~~~~~~~~~~~~
+When connecting a socket to a peer address using _zmq_connect()_ with the 'tls'
+transport, the 'endpoint' shall be interpreted as a 'peer address' followed by
+a colon and the TCP port number to use.
+
+A 'peer address' may be specified by either of the following:
+
+* The DNS name of the peer.
+* The IPv4 or IPv6 address of the peer, in its numeric representation.
+
+Note: A description of the ZeroMQ Message Transport Protocol (ZMTP) which is 
+used by the TLS transport can be found at <http://rfc.zeromq.org/spec:15>
+
+ERRORS
+------
+*ETLSCA*::
+Unable to load CA certificates.
+*ETLSCERT*::
+Unable to load certificate.
+*ETLSKEY*::
+Unable to load certificate key file.
+*ETLSKEYINVALID*::
+Client certificate/key are inconsistent.
+*ETLSPASS*::
+Certificate password failed.
+*ETLSCTX*::
+Could not create context.
+*ETLSCIPHER*::
+Could not set ciphers.
+*ETLS*::
+Could not create SSL object.
+*ETLSVERIFY*::
+Certificate verification failed.
+*ETLSCNAME*::
+Error validating peer certificate common name.
+
+SOCKET OPTIONS
+--------------
+
+Relevant socket options for the TLS transport are :
+
+*ZMQ_TLS_CA_DIR*::
+Directory path to trusted CA certificates in PEM format. Each file should contain a single certificate. Has lower priority than 'ZMQ_TLS_CA_FILE'.
+*ZMQ_TLS_CA_FILE*::
+File path to trusted CA certificates in PEM format. The file may contain several certificates and has higher priority than 'ZMQ_TLS_CA_DIR'.
+*ZMQ_TLS_CERT_FILE*::
+File path to certificate in PEM format. Only the first certificate found will be used.
+*ZMQ_TLS_KEY_FILE*::
+File path to private key in PEM format. Only the first key found will be used.
+*ZMQ_TLS_CERT_PASSWORD*::
+Certificate password to use.
+*ZMQ_TLS_VERIFY_PEER*::
+Sets the verification flag.
+*ZMQ_TLS_CERT_COMMON_NAME*::
+Peer certificate common name to validate against.
+
+See See linkzmq:zmq_setsockopt[3] and linkzmq:zmq_getsockopt[3] for further details.
+
+EXAMPLES
+--------
+.Assigning a local address to a socket
+----
+//  Assign CA cert
+rc = zmq_setsockopt (socket, ZMQ_TLS_CA_FILE, "tls/test-ca.crt", 15);
+assert (rc == 0);
+//  Assign server cert
+rc = zmq_setsockopt (socket, ZMQ_TLS_CERT_FILE, "tls/server.crt", 14);
+assert (rc == 0);
+// Assign server private key
+rc = zmq_setsockopt (socket, ZMQ_TLS_KEY_FILE, "tls/server.key", 14);
+assert (rc == 0);
+//  TCP port 5555 on all available interfaces
+rc = zmq_bind(socket, "tls:/// :5555");
+assert (rc == 0);
+//  TCP port 5555 on the local loop-back interface on all platforms
+rc = zmq_bind(socket, "tls://127.0.0.1:5555");
+assert (rc == 0);
+//  TCP port 5555 on the first Ethernet network interface on Linux
+rc = zmq_bind(socket, "tls://eth0:5555");
+assert (rc == 0);
+----
+
+.Connecting a socket
+----
+//  Assign CA cert
+rc = zmq_setsockopt (s, ZMQ_TLS_CA_FILE, "tls/test-ca.crt", 15);
+assert (rc == 0);
+//  Assign client cert
+rc = zmq_setsockopt (s, ZMQ_TLS_CERT_FILE, "tls/client.crt", 14);
+assert (rc == 0);
+// Assign client private key
+rc = zmq_setsockopt (s, ZMQ_TLS_KEY_FILE, "tls/client.key", 14);
+assert (rc == 0);
+//  Connecting using an IP address
+rc = zmq_connect(socket, "tls://192.168.1.1:5555");
+assert (rc == 0);
+//  Connecting using a DNS name
+rc = zmq_connect(socket, "tls://server1:5555");
+assert (rc == 0);
+----
+
+
+SEE ALSO
+--------
+linkzmq:zmq_bind[3]
+linkzmq:zmq_connect[3]
+linkzmq:zmq_pgm[7]
+linkzmq:zmq_ipc[7]
+linkzmq:zmq_tcp[7]
+linkzmq:zmq_inproc[7]
+linkzmq:zmq[7]
+
+
+AUTHORS
+-------
+This 0MQ manual page was written by Lourens Naudé <lourens@methodmissing.com>.
