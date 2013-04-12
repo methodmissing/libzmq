@@ -98,7 +98,7 @@ void zmq::ctx_t::tls_locking_function (int mode_, int n_, const char *file_, int
     if (mode_ & CRYPTO_LOCK) {
         MUTEX_LOCK (zmq::tls_mutexes[n_]);
     } else {
-        MUTEX_LOCK (zmq::tls_mutexes[n_]);
+        MUTEX_UNLOCK (zmq::tls_mutexes[n_]);
     }
 }
 
