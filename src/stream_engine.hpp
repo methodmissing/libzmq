@@ -24,7 +24,6 @@
 
 #include "fd.hpp"
 #include "i_engine.hpp"
-#include "i_msg_sink.hpp"
 #include "io_object.hpp"
 #include "i_encoder.hpp"
 #include "i_decoder.hpp"
@@ -43,12 +42,13 @@ namespace zmq
     };
 
     class io_thread_t;
+    class msg_t;
     class session_base_t;
 
     //  This engine handles any socket with SOCK_STREAM semantics,
     //  e.g. TCP socket or an UNIX domain socket.
 
-    class stream_engine_t : public io_object_t, public i_engine, public i_msg_sink
+    class stream_engine_t : public io_object_t, public i_engine
     {
     public:
 
@@ -61,9 +61,6 @@ namespace zmq
         void terminate ();
         void activate_in ();
         void activate_out ();
-
-        //  i_msg_sink interface implementation.
-        virtual int push_msg (msg_t *msg_);
 
         //  i_poll_events interface implementation.
         virtual void in_event ();
@@ -92,8 +89,15 @@ namespace zmq
 
         options_t options;
 
-        //  True iff we are registered with an I/O poller.
-        bool io_enabled;
+        int read_identity (msg_t *msg_);
+        int write_identity (msg_t *msg_);
+
+        int pull_msg_from_session (msg_t *msg_);
+        int push_msg_to_session (msg_t *msg);
+
+        int write_subscription_msg (msg_t *msg_);
+
+        msg_t tx_msg;
 
         handle_t handle;
 
@@ -139,6 +143,21 @@ namespace zmq
 
         // String representation of endpoint
         std::string endpoint;
+
+        int (stream_engine_t::*read_msg) (msg_t *msg_);
+
+        int (stream_engine_t::*write_msg) (msg_t *msg_);
+
+        bool io_error;
+
+        //  True iff the session could not accept more
+        //  messages due to flow control.
+        bool congested;
+
+        //  Indicates whether the engine is to inject a phony
+        //  subscription message into the incomming stream.
+        //  Needed to support old peers.
+        bool subscription_required;
 
         // Socket
         zmq::socket_base_t *socket;

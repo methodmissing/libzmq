@@ -142,7 +142,6 @@ error:
     int err = errno;
     tls_error ();
     rm_fd (handle);
-    io_enabled = false;
     errno = err;
 }
 
