@@ -90,7 +90,7 @@ int main (void)
 
     int rc;
     size_t size;
-    char buffer[9];
+    char buffer[11];
 
     //  Create the infrastructure
     void *ctx = zmq_init (1);
