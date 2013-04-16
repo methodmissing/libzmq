@@ -128,6 +128,8 @@ void zmq::tls_connecter_t::tls_term ()
     if (ssl) {
         if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
             SSL_shutdown (ssl);
+        else
+            SSL_clear (ssl);
         SSL_free (ssl);
         ssl = NULL;
     }

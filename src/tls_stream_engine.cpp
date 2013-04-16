@@ -169,9 +169,10 @@ void zmq::tls_stream_engine_t::tls_term ()
 {
     int rc;
     if (ssl) {
-        rc = SSL_shutdown (ssl);
-        if (rc == 0)
+        if (SSL_get_shutdown (ssl) & SSL_RECEIVED_SHUTDOWN)
             SSL_shutdown (ssl);
+        else
+            SSL_clear (ssl);
         SSL_free (ssl);
         ssl = NULL;
     }
