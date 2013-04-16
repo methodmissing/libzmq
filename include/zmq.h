@@ -141,16 +141,16 @@ ZMQ_EXPORT void zmq_version (int *major, int *minor, int *patch);
 #define EMTHREAD (ZMQ_HAUSNUMERO + 54)
 
 /*  SSL specific error codes.                                                 */
-#define ETLSCA (ZMQ_HAUSNUMERO + 64)
-#define ETLSCERT (ZMQ_HAUSNUMERO + 65)
-#define ETLSKEY (ZMQ_HAUSNUMERO + 66)
-#define ETLSKEYINVALID (ZMQ_HAUSNUMERO + 67)
-#define ETLSPASS (ZMQ_HAUSNUMERO + 68)
-#define ETLSCTX (ZMQ_HAUSNUMERO + 69)
-#define ETLSCIPHER (ZMQ_HAUSNUMERO + 70)
-#define ETLS (ZMQ_HAUSNUMERO + 71)
-#define ETLSVERIFY (ZMQ_HAUSNUMERO + 72)
-#define ETLSCNAME (ZMQ_HAUSNUMERO + 73)
+#define ETLSCA (ZMQ_HAUSNUMERO + 55)
+#define ETLSCERT (ZMQ_HAUSNUMERO + 56)
+#define ETLSKEY (ZMQ_HAUSNUMERO + 57)
+#define ETLSKEYINVALID (ZMQ_HAUSNUMERO + 58)
+#define ETLSPASS (ZMQ_HAUSNUMERO + 59)
+#define ETLSCTX (ZMQ_HAUSNUMERO + 60)
+#define ETLSCIPHER (ZMQ_HAUSNUMERO + 61)
+#define ETLS (ZMQ_HAUSNUMERO + 62)
+#define ETLSVERIFY (ZMQ_HAUSNUMERO + 63)
+#define ETLSCNAME (ZMQ_HAUSNUMERO + 64)
 
 /*  This function retrieves the errno as it is known to 0MQ library. The goal */
 /*  of this function is to make the code 100% portable, including where 0MQ   */
