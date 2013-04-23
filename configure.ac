@@ -66,6 +66,15 @@ LIBZMQ_WITH_GCOV
 AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([rt], [clock_gettime])
 
+# DTrace OS support
+libzmq_dtrace_supported="no"
+
+# Any libs required for the DTrace implementation to work 
+libzmq_dtrace_libs="-ldtrace"
+
+# DTrace bits flag
+libzmq_dtrace_arch=32
+
 # Set pedantic
 libzmq_pedantic="yes"
 
@@ -105,6 +114,7 @@ case "${host_os}" in
         # Define on Solaris to enable all library features
         CPPFLAGS="-D_PTHREADS $CPPFLAGS"
         AC_DEFINE(ZMQ_HAVE_SOLARIS, 1, [Have Solaris OS])
+        libzmq_dtrace_supported="yes"
         AC_CHECK_LIB(socket, socket)
         AC_CHECK_LIB(nsl, gethostbyname)
         AC_MSG_CHECKING([whether atomic operations can be used])
@@ -125,6 +135,8 @@ case "${host_os}" in
         # Define on FreeBSD to enable all library features
         CPPFLAGS="-D__BSD_VISIBLE $CPPFLAGS"
         AC_DEFINE(ZMQ_HAVE_FREEBSD, 1, [Have FreeBSD OS])
+        libzmq_dtrace_supported="yes"
+        libzmq_dtrace_libs="-lelf"
         ;;
     *darwin*)
         # Define on Darwin to enable all library features
@@ -132,6 +144,7 @@ case "${host_os}" in
         libzmq_pedantic="no"
         libzmq_werror="no"
         AC_DEFINE(ZMQ_HAVE_OSX, 1, [Have DarwinOSX OS])
+        libzmq_dtrace_supported="yes"
         AC_LANG_PUSH([C++])
         LIBZMQ_CHECK_LANG_FLAG_PREPEND([-Wno-uninitialized])
         AC_LANG_POP([C++])
@@ -281,6 +294,40 @@ AC_HEADER_TIME
 AC_TYPE_UINT32_T
 AC_C_VOLATILE
 
+# DTrace
+libzmq_dtrace_enabled="no"
+AC_ARG_ENABLE([dtrace], [AS_HELP_STRING([--enable-dtrace],
+    [enable DTrace support [default=no]])],
+    [enable_dtrace=$enableval], [enable_dtrace=no])
+
+if test "x$enable_dtrace" != "xno" -a "x$libzmq_dtrace_supported" != "xno"; then
+    AC_CHECK_HEADERS(sys/sdt.h)
+    AC_CHECK_TOOL(DTRACE, dtrace, none)
+    AS_IF([test "$DTRACE" = "none"], [
+        AC_MSG_ERROR([No DTrace frontend /utility found.])
+    ])
+    AC_MSG_NOTICE([enabling DTrace support])
+    $DTRACE -v -h -o src/dtrace_provider.hpp -s src/zmq_provider.d
+    if test -f src/dtrace_provider.hpp; then
+        AC_MSG_NOTICE([generated DTrace probes header])
+        AC_DEFINE(ZMQ_HAVE_DTRACE, 1, [Have DTrace support])
+    else
+        AC_MSG_ERROR([could not generate the DTrace probes header])
+    fi
+    $DTRACE -G -o conftest.$$ -s src/zmq_provider.d 2>/dev/zero
+    AS_IF([test $? -eq 0], [
+        libzmq_dtrace_post_process="yes"
+        rm conftest.$$
+        AC_MSG_NOTICE([post processing required for DTrace implementation])
+    ])
+    AC_CHECK_SIZEOF(void *)
+    AS_IF([test "x$ac_cv_sizeof_void_p" = x8], [
+        libzmq_dtrace_arch=64
+    ])
+    LIBS="$LIBS $libzmq_dtrace_libs"
+    libzmq_dtrace_enabled="yes"
+fi
+
 #  PGM extension
 libzmq_pgm_ext="no"
 
@@ -376,6 +423,8 @@ AC_LANG_POP([C++])
 AM_CONDITIONAL(BUILD_PGM, test "x$libzmq_pgm_ext" = "xyes")
 AM_CONDITIONAL(ON_MINGW, test "x$libzmq_on_mingw32" = "xyes")
 AM_CONDITIONAL(ON_ANDROID, test "x$libzmq_on_android" = "xyes")
+AM_CONDITIONAL(DTRACE_ENABLED, [test "x$libzmq_dtrace_enabled" = "xyes"])
+AM_CONDITIONAL(DTRACE_POST_PROCESS, [test "x$libzmq_dtrace_post_process" = "xyes"])
 
 # Checks for library functions.
 AC_TYPE_SIGNAL

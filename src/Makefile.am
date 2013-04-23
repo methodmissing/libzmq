@@ -162,6 +162,26 @@ libzmq_la_LDFLAGS = -version-info @LTVER@ @LIBZMQ_EXTRA_LDFLAGS@
 endif
 endif
 
+BUILT_SOURCES=
+CLEANFILES=
+
+if DTRACE_ENABLED
+BUILT_SOURCES += dtrace_provider.hpp
+CLEANFILES += dtrace_provider.hpp
+endif
+
+if DTRACE_POST_PROCESS
+# XXX need to revisit and assert these semantics on a FreeBSD and Solaris VM
+libzmq_la_LIBADD =
+libzmq_la_DEPENDENCIES =
+libzmq_la_LIBADD += libzmq_probes.$(OBJEXT)
+libzmq_la_DEPENDENCIES += libzmq_probes.$(OBJEXT)
+CLEANFILES += libzmq_probes.$(OBJEXT)
+endif
+
+libzmq_probes.$(OBJEXT): zmq_provider.d .libs/libzmq_la-xs.$(OBJEXT)
+	$(DTRACE) -G -s zmq_provider.d -o libzmq_probes.$(OBJEXT) .libs/libzmq_la-*.$(OBJEXT)
+
 libzmq_la_CXXFLAGS = @LIBZMQ_EXTRA_CXXFLAGS@
 
 if BUILD_PGM
