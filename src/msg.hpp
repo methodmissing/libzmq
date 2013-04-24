@@ -26,6 +26,10 @@
 #include "config.hpp"
 #include "atomic_counter.hpp"
 
+#ifdef ZMQ_HAVE_DTRACE
+#include "dtrace_impl.hpp"
+#endif
+
 //  Signature for free function to deallocate the message content.
 //  Note that it has to be declared as "C" so that it is the same as
 //  zmq_free_fn defined in zmq.h.
@@ -77,6 +81,10 @@ namespace zmq
         //  Removes references previously added by add_refs. If the number of
         //  references drops to 0, the message is closed and false is returned.
         bool rm_refs (int refs_);
+
+#ifdef ZMQ_HAVE_DTRACE
+        void dtrace_cast (dzmq_msg_t *dmsg_);
+#endif
 
     private:
 

@@ -349,6 +349,11 @@ ZMQ_EXPORT int zmq_poll (zmq_pollitem_t *items, int nitems, long timeout);
 
 ZMQ_EXPORT int zmq_proxy (void *frontend, void *backend, void *capture);
 
+#ifdef ZMQ_HAVE_DTRACE
+ZMQ_EXPORT void zmq_trace_start(char *msg, void *obj);
+ZMQ_EXPORT void zmq_trace_done(char *msg, void *obj);
+#endif
+
 /*  Deprecated aliases */
 #define ZMQ_STREAMER 1
 #define ZMQ_FORWARDER 2

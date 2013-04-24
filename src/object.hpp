@@ -22,6 +22,13 @@
 
 #include "stdint.hpp"
 
+#ifdef ZMQ_HAVE_DTRACE
+#include "dtrace_impl.hpp"
+#include "dtrace_provider.hpp"
+#else
+#include "notrace.hpp"
+#endif
+
 namespace zmq
 {
 

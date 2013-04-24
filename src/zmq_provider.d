@@ -1,4 +1,7 @@
 provider zmq {
+    /* Custom user probe */
+    probe trace__start(char *msg, void *obj);
+    probe trace__done(char *msg, void *obj);
 };
 
 #pragma D attributes Stable/Stable/Common	provider zmq provider

@@ -33,6 +33,10 @@
 #include "options.hpp"
 #include "atomic_counter.hpp"
 
+#ifdef ZMQ_HAVE_DTRACE
+#include "dtrace_impl.hpp"
+#endif
+
 namespace zmq
 {
 
@@ -97,6 +101,10 @@ namespace zmq
             term_tid = 0,
             reaper_tid = 1
         };
+
+#ifdef ZMQ_HAVE_DTRACE
+        void dtrace_cast (dzmq_ctx_t *dctx_);
+#endif
 
         ~ctx_t ();
 

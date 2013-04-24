@@ -79,6 +79,13 @@ struct iovec {
 #include "msg.hpp"
 #include "fd.hpp"
 
+#ifdef ZMQ_HAVE_DTRACE
+#include "dtrace.hpp"
+#include "dtrace_provider.hpp"
+#else
+#include "notrace.hpp"
+#endif
+
 #if !defined ZMQ_HAVE_WINDOWS
 #include <unistd.h>
 #endif
@@ -988,6 +995,18 @@ int zmq_proxy (void *frontend_, void *backend_, void *control_)
         (zmq::socket_base_t*) backend_,
         (zmq::socket_base_t*) control_);
 }
+
+#ifdef ZMQ_HAVE_DTRACE
+void zmq_trace_start (char *msg_, void *obj_)
+{
+    if (ZMQ_TRACE_START_ENABLED()) ZMQ_TRACE_START(msg_, obj_);
+}
+
+void zmq_trace_done (char *msg_, void *obj_)
+{
+    if (ZMQ_TRACE_DONE_ENABLED()) ZMQ_TRACE_DONE(msg_, obj_);
+}
+#endif
 
 //  The deprecated device functionality
 

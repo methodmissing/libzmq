@@ -88,6 +88,8 @@ libzmq_la_SOURCES = \
     ctx.cpp \
     devpoll.cpp \
     dist.cpp \
+    dtrace.hpp \
+    dtrace_impl.hpp \
     epoll.cpp \
     err.cpp \
     fq.cpp \
@@ -102,6 +104,7 @@ libzmq_la_SOURCES = \
     mailbox.cpp \
     msg.cpp \
     mtrie.cpp \
+    notrace.hpp \
     object.cpp \
     options.cpp \
     own.cpp \

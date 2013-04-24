@@ -1212,3 +1212,31 @@ void zmq::socket_base_t::stop_monitor()
         monitor_events = 0;
     }
 }
+
+#ifdef ZMQ_HAVE_DTRACE
+void zmq::socket_base_t::dtrace_cast (dzmq_ctx_t *dctx_, dzmq_socket_t *ds_)
+{
+    memset(ds_, 0, sizeof (*ds_));
+    if (!unlikely (check_tag())) {
+        ds_->ctx = NULL;
+        ds_->type = 0;
+        ds_->ticks = 0;
+        ds_->rcvmore = 0;
+        ds_->fd = 0;
+    } else {
+        ((zmq::ctx_t *) get_ctx())->dtrace_cast (dctx_);
+        ds_->ctx = dctx_;
+        int type;
+        fd_t fd;
+        size_t type_size;
+        type_size = sizeof (int);
+        getsockopt (ZMQ_TYPE, &type, &type_size);
+        ds_->type = (unsigned char)type;
+        ds_->ticks = ticks;
+        ds_->rcvmore = (char)rcvmore;
+        type_size = sizeof (fd_t);
+        getsockopt (ZMQ_FD, &fd, &type_size);
+        ds_->fd = (int)fd;
+    }
+}
+#endif

@@ -295,3 +295,20 @@ bool zmq::msg_t::rm_refs (int refs_)
     return true;
 }
 
+#ifdef ZMQ_HAVE_DTRACE
+void zmq::msg_t::dtrace_cast (dzmq_msg_t *dmsg_)
+{
+    memset(dmsg_, 0, sizeof (*dmsg_));
+    if (unlikely (!check())) {
+        dmsg_->data = NULL;
+        dmsg_->size = 0;
+        dmsg_->type = 0;
+        dmsg_->flags = 0;
+    } else {
+        dmsg_->data = (char *)data();
+        dmsg_->size = size();
+        dmsg_->type = u.base.type;
+        dmsg_->flags = u.base.flags;
+    }
+}
+#endif

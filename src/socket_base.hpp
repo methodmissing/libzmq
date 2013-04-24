@@ -35,6 +35,10 @@
 #include "clock.hpp"
 #include "pipe.hpp"
 
+#ifdef ZMQ_HAVE_DTRACE
+#include "dtrace_impl.hpp"
+#endif
+
 extern "C"
 {
     void zmq_free_event (void *data, void *hint);
@@ -116,6 +120,10 @@ namespace zmq
         void event_closed (std::string &addr_, int fd_);        
         void event_close_failed (std::string &addr_, int fd_);  
         void event_disconnected (std::string &addr_, int fd_); 
+
+#ifdef ZMQ_HAVE_DTRACE
+        void dtrace_cast (dzmq_ctx_t *dctx_, dzmq_socket_t *ds_);
+#endif
 
     protected:
 
