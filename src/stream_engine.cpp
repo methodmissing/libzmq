@@ -40,6 +40,8 @@
 #include "v1_decoder.hpp"
 #include "v2_encoder.hpp"
 #include "v2_decoder.hpp"
+#include "null_mechanism.hpp"
+#include "plain_mechanism.hpp"
 #include "raw_decoder.hpp"
 #include "raw_encoder.hpp"
 #include "config.hpp"
@@ -48,7 +50,8 @@
 #include "likely.hpp"
 #include "wire.hpp"
 
-zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, const std::string &endpoint_) :
+zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, 
+                                       const std::string &endpoint_) :
     s (fd_),
     inpos (NULL),
     insize (0),
@@ -57,6 +60,7 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, cons
     outsize (0),
     encoder (NULL),
     handshaking (true),
+    greeting_size (v2_greeting_size),
     greeting_bytes_read (0),
     session (NULL),
     options (options_),
@@ -68,11 +72,14 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_, cons
     io_error (false),
     congested (false),
     subscription_required (false),
+    mechanism (NULL),
+    input_paused (false),
+    output_paused (false),
     socket (NULL)
 {
     int rc = tx_msg.init ();
     errno_assert (rc == 0);
-
+    
     //  Put the socket into non-blocking mode.
     unblock_socket (s);
     //  Set the socket buffer limits for the underlying socket.
@@ -417,7 +424,7 @@ bool zmq::stream_engine_t::handshake ()
         if (greeting_recv [0] != 0xff)
             break;
 
-        if (greeting_bytes_read < 10)
+        if (greeting_bytes_read < signature_size)
             continue;
 
         //  Inspect the right-most bit of the 10th byte (which coincides
@@ -428,12 +435,35 @@ bool zmq::stream_engine_t::handshake ()
             break;
 
         //  The peer is using versioned protocol.
-        //  Send the rest of the greeting, if necessary.
-        if (outpos + outsize != greeting_send + greeting_size) {
+        //  Send the major version number.
+        if (outpos + outsize == greeting_send + signature_size) {
             if (outsize == 0)
                 set_pollout (handle);
-            outpos [outsize++] = ZMTP_2_1;      // Protocol revision
-            outpos [outsize++] = options.type;  // Socket type
+            outpos [outsize++] = 3;     //  Major version number
+        }
+
+        if (greeting_bytes_read > signature_size) {
+            if (outpos + outsize == greeting_send + signature_size + 1) {
+                if (outsize == 0)
+                    set_pollout (handle);
+
+                //  Use ZMTP/2.0 to talk to older peers.
+                if (greeting_recv [10] == ZMTP_1_0
+                ||  greeting_recv [10] == ZMTP_2_0)
+                    outpos [outsize++] = options.type;
+                else {
+                    outpos [outsize++] = 0; //  Minor version number
+                    memset (outpos + outsize, 0, 20);
+                    if (options.mechanism == ZMQ_NULL)
+                        memcpy (outpos + outsize, "NULL", 4);
+                    else
+                        memcpy (outpos + outsize, "PLAIN", 5);
+                    outsize += 20;
+                    memset (outpos + outsize, 0, 32);
+                    outsize += 32;
+                    greeting_size = v3_greeting_size;
+                }
+            }
         }
     }
 
@@ -478,6 +508,15 @@ bool zmq::stream_engine_t::handshake ()
             in_batch_size, options.maxmsgsize);
         alloc_assert (decoder);
     }
+    else
+    if (greeting_recv [revision_pos] == ZMTP_2_0) {
+        encoder = new (std::nothrow) v2_encoder_t (out_batch_size);
+        alloc_assert (encoder);
+
+        decoder = new (std::nothrow) v2_decoder_t (
+            in_batch_size, options.maxmsgsize);
+        alloc_assert (decoder);
+    }
     else {
         encoder = new (std::nothrow) v2_encoder_t (out_batch_size);
         alloc_assert (encoder);
@@ -485,6 +524,23 @@ bool zmq::stream_engine_t::handshake ()
         decoder = new (std::nothrow) v2_decoder_t (
             in_batch_size, options.maxmsgsize);
         alloc_assert (decoder);
+
+        if (memcmp (greeting_recv + 12, "NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 20) == 0) {
+            mechanism = new (std::nothrow) null_mechanism_t (options);
+            alloc_assert (mechanism);
+        }
+        else
+        if (memcmp (greeting_recv + 12, "PLAIN\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 20) == 0) {
+            mechanism = new (std::nothrow) plain_mechanism_t (options);
+            alloc_assert (mechanism);
+        }
+        else {
+            error ();
+            return false;
+        }
+
+        read_msg = &stream_engine_t::next_handshake_message;
+        write_msg = &stream_engine_t::process_handshake_message;
     }
 
     // Start polling for output if necessary.
@@ -528,6 +584,61 @@ int zmq::stream_engine_t::write_identity (msg_t *msg_)
         write_msg = &stream_engine_t::push_msg_to_session;
 
     return 0;
+}
+
+int zmq::stream_engine_t::next_handshake_message (msg_t *msg_)
+{
+    zmq_assert (mechanism != NULL);
+
+    const int rc = mechanism->next_handshake_message (msg_);
+    if (rc == 0) {
+        if (mechanism->is_handshake_complete ())
+            mechanism_ready ();
+        if (input_paused) {
+            activate_in ();
+            input_paused = false;
+        }
+    }
+    else
+    if (rc == -1) {
+        zmq_assert (errno == EAGAIN);
+        output_paused = true;
+    }
+
+    return rc;
+}
+
+int zmq::stream_engine_t::process_handshake_message (msg_t *msg_)
+{
+    zmq_assert (mechanism != NULL);
+
+    const int rc = mechanism->process_handshake_message (msg_);
+    if (rc == 0) {
+        if (mechanism->is_handshake_complete ())
+            mechanism_ready ();
+        if (output_paused) {
+            activate_out ();
+            output_paused = false;
+        }
+    }
+    else
+    if (rc == -1 && errno == EAGAIN)
+        input_paused = true;
+
+    return rc;
+}
+
+void zmq::stream_engine_t::mechanism_ready ()
+{
+    if (options.recv_identity) {
+        msg_t identity;
+        mechanism->peer_identity (&identity);
+        const int rc = session->push_msg (&identity);
+        errno_assert (rc == 0);
+    }
+
+    read_msg = &stream_engine_t::pull_msg_from_session;
+    write_msg = &stream_engine_t::push_msg_to_session;
 }
 
 int zmq::stream_engine_t::pull_msg_from_session (msg_t *msg_)

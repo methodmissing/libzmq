@@ -39,9 +39,11 @@ libzmq_la_SOURCES = \
     lb.hpp \
     likely.hpp \
     mailbox.hpp \
+    mechanism.hpp  \
     msg.hpp \
     mtrie.hpp \
     mutex.hpp \
+    null_mechanism.hpp \
     object.hpp \
     options.hpp \
     own.hpp \
@@ -49,6 +51,7 @@ libzmq_la_SOURCES = \
     pgm_sender.hpp \
     pgm_socket.hpp \
     pipe.hpp \
+    plain_mechanism.hpp \
     platform.hpp \
     poll.hpp \
     poller.hpp \
@@ -102,9 +105,11 @@ libzmq_la_SOURCES = \
     kqueue.cpp \
     lb.cpp \
     mailbox.cpp \
+    mechanism.cpp \
     msg.cpp \
     mtrie.cpp \
     notrace.hpp \
+    null_mechanism.cpp \
     object.cpp \
     options.cpp \
     own.cpp \
@@ -113,6 +118,7 @@ libzmq_la_SOURCES = \
     pgm_sender.cpp \
     pgm_socket.cpp \
     pipe.cpp \
+    plain_mechanism.cpp \
     poll.cpp \
     poller_base.cpp \
     pull.cpp \
