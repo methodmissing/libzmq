@@ -354,6 +354,20 @@ zmq::endpoint_t zmq::ctx_t::find_endpoint (const char *addr_)
      return endpoint;
 }
 
+#ifdef ZMQ_HAVE_DTRACE
+void zmq::ctx_t::dtrace_cast (dzmq_ctx_t *dctx_)
+{
+    memset(dctx_, 0, sizeof (*dctx_));
+    if (!unlikely (check_tag())) {
+        dctx_->starting = 0;
+        dctx_->terminating = 0;
+    } else {
+        dctx_->starting = (char)starting;
+        dctx_->terminating = (char)terminating;
+    }
+}
+#endif
+
 //  The last used socket ID, or 0 if no socket was used so far. Note that this
 //  is a global variable. Thus, even sockets created in different contexts have
 //  unique IDs.

@@ -182,7 +182,7 @@ libzmq_la_DEPENDENCIES += libzmq_probes.$(OBJEXT)
 CLEANFILES += libzmq_probes.$(OBJEXT)
 endif
 
-libzmq_probes.$(OBJEXT): zmq_provider.d .libs/libzmq_la-xs.$(OBJEXT)
+libzmq_probes.$(OBJEXT): zmq_provider.d .libs/libzmq_la-zmq.$(OBJEXT)
 	$(DTRACE) -G -s zmq_provider.d -o libzmq_probes.$(OBJEXT) .libs/libzmq_la-*.$(OBJEXT)
 
 libzmq_la_CXXFLAGS = @LIBZMQ_EXTRA_CXXFLAGS@
