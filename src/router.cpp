@@ -33,7 +33,8 @@ zmq::router_t::router_t (class ctx_t *parent_, uint32_t tid_, int sid_) :
     more_out (false),
     next_peer_id (generate_random ()),
     mandatory(false),
-    raw_sock(false)
+    raw_sock(false),
+    announce_self(false)
 {
     options.type = ZMQ_ROUTER;
     options.recv_identity = true;
@@ -68,26 +69,42 @@ void zmq::router_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
 int zmq::router_t::xsetsockopt (int option_, const void *optval_,
     size_t optvallen_)
 {
-    if (option_ != ZMQ_ROUTER_MANDATORY
-    &&  option_ != ZMQ_ROUTER_RAW) {
-        errno = EINVAL;
-        return -1;
+    bool is_int = (optvallen_ == sizeof (int));
+    int value = is_int? *((int *) optval_): 0;
+
+    switch (option_) {
+        case ZMQ_ROUTER_RAW:
+            if (is_int && value >= 0) {
+                raw_sock = value;
+                if (raw_sock) {
+                    options.recv_identity = false;
+                    options.raw_sock = true;
+                }
+                return 0;
+            }
+            break;
+        
+        case ZMQ_ROUTER_MANDATORY:
+            if (is_int && value >= 0) {
+                mandatory = value;
+                return 0;
+            }
+            break;
+            
+        case ZMQ_ROUTER_ANNOUNCE_SELF:
+            if (is_int && value >= 0) {
+                announce_self = value;
+                return 0;
+            }
+            break;
+            
+        default:
+            break;
     }
-    if (optvallen_ != sizeof (int) || *static_cast <const int*> (optval_) < 0) {
-        errno = EINVAL;
-        return -1;
-    }
-    if (option_ == ZMQ_ROUTER_RAW) {
-        raw_sock = (*static_cast <const int*> (optval_) != 0);
-        if (raw_sock) {
-            options.recv_identity = false;
-            options.raw_sock = true;
-        }
-    }
-    else
-        mandatory = (*static_cast <const int*> (optval_) != 0);
-    return 0;
+    errno = EINVAL;
+    return -1;
 }
+
 
 void zmq::router_t::xterminated (pipe_t *pipe_)
 {
@@ -373,6 +390,15 @@ bool zmq::router_t::identify_peer (pipe_t *pipe_)
     outpipe_t outpipe = {pipe_, true};
     ok = outpipes.insert (outpipes_t::value_type (identity, outpipe)).second;
     zmq_assert (ok);
+
+    if (announce_self) {
+        msg_t tmp_;
+        tmp_.init ();
+        ok = pipe_->write (&tmp_);
+        zmq_assert (ok);
+        pipe_->flush ();
+        tmp_.close ();
+    };
 
     return true;
 }
