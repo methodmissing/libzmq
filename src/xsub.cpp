@@ -67,10 +67,10 @@ void zmq::xsub_t::xwrite_activated (pipe_t *pipe_)
     dist.activated (pipe_);
 }
 
-void zmq::xsub_t::xterminated (pipe_t *pipe_)
+void zmq::xsub_t::xpipe_terminated (pipe_t *pipe_)
 {
-    fq.terminated (pipe_);
-    dist.terminated (pipe_);
+    fq.pipe_terminated (pipe_);
+    dist.pipe_terminated (pipe_);
 }
 
 void zmq::xsub_t::xhiccuped (pipe_t *pipe_)
@@ -226,15 +226,3 @@ void zmq::xsub_t::send_subscription (unsigned char *data_, size_t size_,
     if (!sent)
         msg.close ();
 }
-
-zmq::xsub_session_t::xsub_session_t (io_thread_t *io_thread_, bool connect_,
-      socket_base_t *socket_, const options_t &options_,
-      const address_t *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_)
-{
-}
-
-zmq::xsub_session_t::~xsub_session_t ()
-{
-}
-

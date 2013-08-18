@@ -46,6 +46,13 @@ namespace zmq
         //  Process the handshake message received from the peer.
         virtual int process_handshake_message (msg_t *msg_) = 0;
 
+        virtual int encode (msg_t *msg_) { return 0; }
+
+        virtual int decode (msg_t *msg_) { return 0; }
+
+        //  Notifies mechanism about availability of ZAP message.
+        virtual int zap_msg_available () { return 0; }
+
         //  True iff the handshake stage is complete?
         virtual bool is_handshake_complete () const = 0;
 
@@ -55,16 +62,38 @@ namespace zmq
 
     protected:
 
+        //  Only used to identify the socket for the Socket-Type
+        //  property in the wire protocol.
         const char *socket_type_string (int socket_type) const;
 
         size_t add_property (unsigned char *ptr, const char *name,
             const void *value, size_t value_len) const;
+
+        //  Parses a metadata.
+        //  Metadata consists of a list of properties consisting of
+        //  name and value as size-specified strings.
+        //  Returns 0 on success and -1 on error, in which case errno is set.
+        int parse_metadata (const unsigned char *ptr_, size_t length);
+
+        //  This is called by parse_property method whenever it
+        //  parses a new property. The function should return 0
+        //  on success and -1 on error, in which case it should
+        //  set errno. Signaling error prevents parser from
+        //  parsing remaining data.
+        //  Derived classes are supposed to override this
+        //  method to handle custom processing.
+        virtual int property (const std::string name_,
+                              const void *value_, size_t length_);
 
         options_t options;
 
     private:
 
         blob_t identity;
+
+        //  Returns true iff socket associated with the mechanism
+        //  is compatible with a given socket type 'type_'.
+        bool check_socket_type (const std::string type_) const;
     };
 
 }

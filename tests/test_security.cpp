@@ -17,10 +17,55 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "../include/zmq_utils.h"
+#include <string.h>
+#include <stdlib.h>
 #include "testutil.hpp"
+
+static void zap_handler (void *zap)
+{
+    char *version = s_recv (zap);
+    char *sequence = s_recv (zap);
+    char *domain = s_recv (zap);
+    char *address = s_recv (zap);
+    char *mechanism = s_recv (zap);
+    char *username = s_recv (zap);
+    char *password = s_recv (zap);
+    
+    assert (streq (version, "1.0"));
+    assert (streq (mechanism, "PLAIN"));
+
+    s_sendmore (zap, version);
+    s_sendmore (zap, sequence);
+    if (streq (username, "admin")
+    &&  streq (password, "password")) {
+        s_sendmore (zap, "200");
+        s_sendmore (zap, "OK");
+        s_sendmore (zap, "anonymous");
+        s_send (zap, "");
+    }
+    else {
+        s_sendmore (zap, "400");
+        s_sendmore (zap, "Invalid username or password");
+        s_sendmore (zap, "");
+        s_send (zap, "");
+    }
+    
+    free (version);
+    free (sequence);
+    free (domain);
+    free (address);
+    free (mechanism);
+    free (username);
+    free (password);
+    
+    int rc = zmq_close (zap);
+    assert (rc == 0);
+}
 
 int main (void)
 {
+    setup_test_environment();
     void *ctx = zmq_ctx_new ();
     assert (ctx);
 
@@ -122,6 +167,16 @@ int main (void)
     assert (rc == 0);
     assert (as_server == 1);
 
+    //  Create and bind ZAP socket
+    void *zap = zmq_socket (ctx, ZMQ_REP);
+    assert (zap);
+
+    rc = zmq_bind (zap, "inproc://zeromq.zap.01");
+    assert (rc == 0);
+
+    //  Spawn ZAP handler
+    void* zap_thread = zmq_threadstart(&zap_handler, zap);
+
     rc = zmq_bind (server, "tcp://*:9998");
     assert (rc == 0);
     rc = zmq_connect (client, "tcp://localhost:9998");
@@ -133,6 +188,9 @@ int main (void)
     assert (rc == 0);
     rc = zmq_close (server);
     assert (rc == 0);
+
+    //  Wait until ZAP handler terminates.
+    zmq_threadclose(zap_thread);
     
     //  Check PLAIN security -- two servers trying to talk to each other
     server = zmq_socket (ctx, ZMQ_DEALER);

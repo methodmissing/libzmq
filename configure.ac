@@ -65,7 +65,7 @@ LIBZMQ_WITH_GCOV
 # Checks for libraries
 AC_CHECK_LIB([pthread], [pthread_create])
 AC_CHECK_LIB([rt], [clock_gettime])
-AC_CHECK_LIB([sodium], [sodium_init])
+AC_CHECK_LIB([sodium], [sodium_init],,AC_MSG_WARN(libsodium is needed for CURVE security))
 
 # DTrace OS support
 libzmq_dtrace_supported="no"
@@ -396,10 +396,18 @@ fi
 # Build with system openpgm
 if test "x$with_system_pgm_ext" != "xno"; then
     m4_ifdef([PKG_CHECK_MODULES], [
-        PKG_CHECK_MODULES([OpenPGM], [openpgm-5.1 >= 5.1])
-        AC_DEFINE(ZMQ_HAVE_OPENPGM, 1, [Have OpenPGM extension])
-        LIBZMQ_EXTRA_CXXFLAGS="$OpenPGM_CFLAGS $LIBZMQ_EXTRA_CXXFLAGS"
-        LIBS="$OpenPGM_LIBS $LIBS"
+        have_pgm_system_library="no"
+        PKG_CHECK_MODULES([OpenPGM], [openpgm-5.2 >= 5.2],
+            [ have_pgm_system_library="yes" ],
+            [PKG_CHECK_MODULES([OpenPGM], [openpgm-5.1 >= 5.1],
+                [ have_pgm_system_library="yes" ])
+            ]
+        )
+        if test "x$have_pgm_system_library" = "xyes"; then
+            AC_DEFINE(ZMQ_HAVE_OPENPGM, 1, [Have OpenPGM extension])
+            LIBZMQ_EXTRA_CXXFLAGS="$OpenPGM_CFLAGS $LIBZMQ_EXTRA_CXXFLAGS"
+            LIBS="$OpenPGM_LIBS $LIBS"
+        fi
     ],
     [AC_MSG_ERROR([--with-system-pgm requires a working pkg-config installation])])
 fi
@@ -469,10 +477,14 @@ AC_SUBST(LIBZMQ_EXTRA_CFLAGS)
 AC_SUBST(LIBZMQ_EXTRA_CXXFLAGS)
 AC_SUBST(LIBZMQ_EXTRA_LDFLAGS)
 
-AC_CONFIG_FILES([Makefile src/Makefile doc/Makefile
-    perf/Makefile src/libzmq.pc \
-    builds/msvc/Makefile tests/Makefile \
+AC_CONFIG_FILES([Makefile \
+    src/Makefile \
+    src/libzmq.pc \
+    doc/Makefile \
+    perf/Makefile \
+    tests/Makefile \
+    tools/Makefile \
+    builds/msvc/Makefile \
     foreign/openpgm/Makefile \
     builds/redhat/zeromq.spec])
 AC_OUTPUT
-

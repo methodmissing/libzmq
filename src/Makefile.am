@@ -15,6 +15,8 @@ libzmq_la_SOURCES = \
     command.hpp \
     config.hpp \
     ctx.hpp \
+    curve_client.hpp \
+    curve_server.hpp \
     decoder.hpp \
     devpoll.hpp \
     dist.hpp \
@@ -70,6 +72,7 @@ libzmq_la_SOURCES = \
     signaler.hpp \
     socket_base.hpp \
     stdint.hpp \
+    stream.hpp \
     stream_engine.hpp \
     sub.hpp \
     tcp.hpp \
@@ -86,9 +89,12 @@ libzmq_la_SOURCES = \
     xsub.hpp \
     ypipe.hpp \
     yqueue.hpp \
+    z85_codec.hpp \
     address.cpp \
     clock.cpp \
     ctx.cpp \
+    curve_client.cpp \
+    curve_server.cpp \
     devpoll.cpp \
     dist.cpp \
     dtrace.hpp \
@@ -133,6 +139,7 @@ libzmq_la_SOURCES = \
     session_base.cpp \
     signaler.cpp \
     socket_base.cpp \
+    stream.cpp \
     stream_engine.cpp \
     sub.cpp \
     tcp.cpp \

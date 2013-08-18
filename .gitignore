@@ -20,6 +20,8 @@ autom4te.cache
 .*
 *~
 .*~
+tools/curve_keygen.o
+tools/curve_keygen
 tests/test_term_endpoint
 tests/test_monitor
 tests/test_last_endpoint
@@ -48,6 +50,16 @@ tests/test_disconnect_inproc
 tests/test_ctx_options
 tests/test_iov
 tests/test_security
+tests/test_security_curve
+tests/test_probe_router
+tests/test_stream
+tests/test_spec_dealer
+tests/test_spec_pushpull
+tests/test_spec_rep
+tests/test_spec_req
+tests/test_spec_router
+tests/test_req_request_ids
+tests/test_req_strict
 src/platform.hpp*
 src/dtrace_provider.hpp*
 src/stamp-h1
@@ -67,6 +79,7 @@ bin/
 lib/
 obj/
 builds/msvc/*.suo
+builds/msvc/*.sdf
 builds/msvc/*/*.user
 builds/msvc/*/*Debug
 builds/msvc/*/*Release
@@ -78,4 +91,3 @@ foreign/openpgm/*
 zeromq-*.tar.gz
 zeromq-*.zip
 core
-

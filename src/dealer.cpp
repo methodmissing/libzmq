@@ -22,7 +22,8 @@
 #include "msg.hpp"
 
 zmq::dealer_t::dealer_t (class ctx_t *parent_, uint32_t tid_, int sid_) :
-    socket_base_t (parent_, tid_, sid_)
+    socket_base_t (parent_, tid_, sid_),
+    probe_router (false)
 {
     options.type = ZMQ_DEALER;
 }
@@ -37,18 +38,54 @@ void zmq::dealer_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
     (void) icanhasall_;
 
     zmq_assert (pipe_);
+
+    if (probe_router) {
+        msg_t probe_msg_;
+        int rc = probe_msg_.init ();
+        errno_assert (rc == 0);
+
+        rc = pipe_->write (&probe_msg_);
+        // zmq_assert (rc) is not applicable here, since it is not a bug.
+        pipe_->flush ();
+
+        rc = probe_msg_.close ();
+        errno_assert (rc == 0);
+    }
+
     fq.attach (pipe_);
     lb.attach (pipe_);
 }
 
+int zmq::dealer_t::xsetsockopt (int option_, const void *optval_,
+    size_t optvallen_)
+{
+    bool is_int = (optvallen_ == sizeof (int));
+    int value = is_int? *((int *) optval_): 0;
+
+    switch (option_) {
+        case ZMQ_PROBE_ROUTER:
+            if (is_int && value >= 0) {
+                probe_router = value;
+                return 0;
+            }
+            break;
+
+        default:
+            break;
+    }
+
+    errno = EINVAL;
+    return -1;
+}
+
 int zmq::dealer_t::xsend (msg_t *msg_)
 {
-    return lb.send (msg_);
+    return sendpipe (msg_, NULL);
 }
 
 int zmq::dealer_t::xrecv (msg_t *msg_)
 {
-    return fq.recv (msg_);
+    return recvpipe (msg_, NULL);
 }
 
 bool zmq::dealer_t::xhas_in ()
@@ -71,20 +108,18 @@ void zmq::dealer_t::xwrite_activated (pipe_t *pipe_)
     lb.activated (pipe_);
 }
 
-void zmq::dealer_t::xterminated (pipe_t *pipe_)
+void zmq::dealer_t::xpipe_terminated (pipe_t *pipe_)
 {
-    fq.terminated (pipe_);
-    lb.terminated (pipe_);
+    fq.pipe_terminated (pipe_);
+    lb.pipe_terminated (pipe_);
 }
 
-zmq::dealer_session_t::dealer_session_t (io_thread_t *io_thread_, bool connect_,
-      socket_base_t *socket_, const options_t &options_,
-      const address_t *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_)
+int zmq::dealer_t::sendpipe (msg_t *msg_, pipe_t **pipe_)
 {
+    return lb.sendpipe (msg_, pipe_);
 }
 
-zmq::dealer_session_t::~dealer_session_t ()
+int zmq::dealer_t::recvpipe (msg_t *msg_, pipe_t **pipe_)
 {
+    return fq.recvpipe (msg_, pipe_);
 }
-

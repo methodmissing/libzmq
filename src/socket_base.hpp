@@ -104,7 +104,7 @@ namespace zmq
         void read_activated (pipe_t *pipe_);
         void write_activated (pipe_t *pipe_);
         void hiccuped (pipe_t *pipe_);
-        void terminated (pipe_t *pipe_);
+        void pipe_terminated (pipe_t *pipe_);
         void lock();
         void unlock();
 
@@ -153,7 +153,7 @@ namespace zmq
         virtual void xread_activated (pipe_t *pipe_);
         virtual void xwrite_activated (pipe_t *pipe_);
         virtual void xhiccuped (pipe_t *pipe_);
-        virtual void xterminated (pipe_t *pipe_) = 0;
+        virtual void xpipe_terminated (pipe_t *pipe_) = 0;
 
         //  Delay actual destruction of the socket.
         void process_destroy ();
@@ -166,10 +166,11 @@ namespace zmq
 
     private:
         //  Creates new endpoint ID and adds the endpoint to the map.
-        void add_endpoint (const char *addr_, own_t *endpoint_);
+        void add_endpoint (const char *addr_, own_t *endpoint_, pipe_t *pipe);
 
         //  Map of open endpoints.
-        typedef std::multimap <std::string, own_t *> endpoints_t;
+        typedef std::pair <own_t *, pipe_t*> endpoint_pipe_t;
+        typedef std::multimap <std::string, endpoint_pipe_t> endpoints_t;
         endpoints_t endpoints;
 
         //  Map of open inproc endpoints.
@@ -245,6 +246,9 @@ namespace zmq
 
         // Bitmask of events being monitored
         int monitor_events;
+
+        // Last socket endpoint resolved URI
+        std::string last_endpoint;
 
         socket_base_t (const socket_base_t&);
         const socket_base_t &operator = (const socket_base_t&);

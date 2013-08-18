@@ -46,9 +46,9 @@ void zmq::push_t::xwrite_activated (pipe_t *pipe_)
     lb.activated (pipe_);
 }
 
-void zmq::push_t::xterminated (pipe_t *pipe_)
+void zmq::push_t::xpipe_terminated (pipe_t *pipe_)
 {
-    lb.terminated (pipe_);
+    lb.pipe_terminated (pipe_);
 }
 
 int zmq::push_t::xsend (msg_t *msg_)
@@ -60,15 +60,3 @@ bool zmq::push_t::xhas_out ()
 {
     return lb.has_out ();
 }
-
-zmq::push_session_t::push_session_t (io_thread_t *io_thread_, bool connect_,
-      socket_base_t *socket_, const options_t &options_,
-      const address_t *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_)
-{
-}
-
-zmq::push_session_t::~push_session_t ()
-{
-}
-

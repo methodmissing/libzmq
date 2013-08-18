@@ -227,6 +227,7 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_PUSH 8
 #define ZMQ_XPUB 9
 #define ZMQ_XSUB 10
+#define ZMQ_STREAM 11
 
 /*  Deprecated aliases                                                        */
 #define ZMQ_XREQ ZMQ_DEALER
@@ -255,7 +256,6 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_MULTICAST_HOPS 25
 #define ZMQ_RCVTIMEO 27
 #define ZMQ_SNDTIMEO 28
-#define ZMQ_IPV4ONLY 31              /*  Request replacement by IPV6          */
 #define ZMQ_LAST_ENDPOINT 32
 #define ZMQ_ROUTER_MANDATORY 33
 #define ZMQ_TCP_KEEPALIVE 34
@@ -273,8 +273,11 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_PLAIN_PASSWORD 46
 #define ZMQ_CURVE_SERVER 47
 #define ZMQ_CURVE_PUBLICKEY 48
-#define ZMQ_CURVE_SERVERKEY 49
-#define ZMQ_ROUTER_ANNOUNCE_SELF 50
+#define ZMQ_CURVE_SECRETKEY 49
+#define ZMQ_CURVE_SERVERKEY 50
+#define ZMQ_PROBE_ROUTER 51
+#define ZMQ_REQ_REQUEST_IDS 52
+#define ZMQ_REQ_STRICT 53
 
 /*  Message options                                                           */
 #define ZMQ_MORE 1
@@ -288,7 +291,8 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_PLAIN 1
 #define ZMQ_CURVE 2
 
-/*  Deprecated aliases                                                        */
+/*  Deprecated options and aliases                                            */
+#define ZMQ_IPV4ONLY                31
 #define ZMQ_DELAY_ATTACH_ON_CONNECT ZMQ_IMMEDIATE
 #define ZMQ_NOBLOCK                 ZMQ_DONTWAIT
 #define ZMQ_FAIL_UNROUTABLE         ZMQ_ROUTER_MANDATORY
@@ -312,12 +316,14 @@ ZMQ_EXPORT int zmq_msg_set (zmq_msg_t *msg, int option, int optval);
 #define ZMQ_EVENT_CLOSED 128
 #define ZMQ_EVENT_CLOSE_FAILED 256
 #define ZMQ_EVENT_DISCONNECTED 512
+#define ZMQ_EVENT_MONITOR_STOPPED 1024
 
 #define ZMQ_EVENT_ALL ( ZMQ_EVENT_CONNECTED | ZMQ_EVENT_CONNECT_DELAYED | \
                         ZMQ_EVENT_CONNECT_RETRIED | ZMQ_EVENT_LISTENING | \
                         ZMQ_EVENT_BIND_FAILED | ZMQ_EVENT_ACCEPTED | \
                         ZMQ_EVENT_ACCEPT_FAILED | ZMQ_EVENT_CLOSED | \
-                        ZMQ_EVENT_CLOSE_FAILED | ZMQ_EVENT_DISCONNECTED )
+                        ZMQ_EVENT_CLOSE_FAILED | ZMQ_EVENT_DISCONNECTED | \
+                        ZMQ_EVENT_MONITOR_STOPPED)
 
 /*  Socket event data  */
 typedef struct {
@@ -336,6 +342,7 @@ ZMQ_EXPORT int zmq_connect (void *s, const char *addr);
 ZMQ_EXPORT int zmq_unbind (void *s, const char *addr);
 ZMQ_EXPORT int zmq_disconnect (void *s, const char *addr);
 ZMQ_EXPORT int zmq_send (void *s, const void *buf, size_t len, int flags);
+ZMQ_EXPORT int zmq_send_const (void *s, const void *buf, size_t len, int flags);
 ZMQ_EXPORT int zmq_recv (void *s, void *buf, size_t len, int flags);
 ZMQ_EXPORT int zmq_socket_monitor (void *s, const char *addr, int events);
 
