@@ -19,9 +19,10 @@ referenced by the 'buf' and 'len' arguments. The 'flags' argument is
 a combination of the flags defined below:
 
 *ZMQ_DONTWAIT*::
-Specifies that the operation should be performed in non-blocking mode. If the
-message cannot be queued on the 'socket', the _zmq_send()_ function shall
-fail with 'errno' set to EAGAIN.
+For socket types (DEALER, PUSH) that block when there are no available peers 
+(or all peers have full high-water mark), specifies that the operation should 
+be performed in non-blocking mode. If the message cannot be queued on the 
+'socket', the _zmq_send()_ function shall fail with 'errno' set to EAGAIN.
 
 *ZMQ_SNDMORE*::
 Specifies that the message being sent is a multi-part message, and that further
@@ -69,6 +70,8 @@ The provided 'socket' was invalid.
 *EINTR*::
 The operation was interrupted by delivery of a signal before the message was
 sent.
+*EHOSTUNREACH*::
+The message cannot be routed.
 
 
 EXAMPLE
@@ -87,6 +90,7 @@ assert (rc == 2);
 
 SEE ALSO
 --------
+linkzmq:zmq_send_const[3]
 linkzmq:zmq_recv[3]
 linkzmq:zmq_socket[7]
 linkzmq:zmq[7]

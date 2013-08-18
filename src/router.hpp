@@ -47,13 +47,13 @@ namespace zmq
         //  Overloads of functions from socket_base_t.
         void xattach_pipe (zmq::pipe_t *pipe_, bool icanhasall_);
         int xsetsockopt (int option_, const void *optval_, size_t optvallen_);
-        int xsend (msg_t *msg_);
-        int xrecv (msg_t *msg_);
+        int xsend (zmq::msg_t *msg_);
+        int xrecv (zmq::msg_t *msg_);
         bool xhas_in ();
         bool xhas_out ();
         void xread_activated (zmq::pipe_t *pipe_);
         void xwrite_activated (zmq::pipe_t *pipe_);
-        void xterminated (zmq::pipe_t *pipe_);
+        void xpipe_terminated (zmq::pipe_t *pipe_);
 
     protected:
 
@@ -112,26 +112,11 @@ namespace zmq
         bool mandatory;
         bool raw_sock;
 
-        // if true, send an empty message to every connected peer to solve 'who will write first' race condition
-        bool announce_self;
+        // if true, send an empty message to every connected router peer
+        bool probe_router;
 
         router_t (const router_t&);
         const router_t &operator = (const router_t&);
-    };
-
-    class router_session_t : public session_base_t
-    {
-    public:
-
-        router_session_t (zmq::io_thread_t *io_thread_, bool connect_,
-            socket_base_t *socket_, const options_t &options_,
-            const address_t *addr_);
-        ~router_session_t ();
-
-    private:
-
-        router_session_t (const router_session_t&);
-        const router_session_t &operator = (const router_session_t&);
     };
 
 }

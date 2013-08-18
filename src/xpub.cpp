@@ -102,14 +102,14 @@ int zmq::xpub_t::xsetsockopt (int option_, const void *optval_,
     return 0;
 }
 
-void zmq::xpub_t::xterminated (pipe_t *pipe_)
+void zmq::xpub_t::xpipe_terminated (pipe_t *pipe_)
 {
     //  Remove the pipe from the trie. If there are topics that nobody
     //  is interested in anymore, send corresponding unsubscriptions
     //  upstream.
     subscriptions.rm (pipe_, send_unsubscription, this);
 
-    dist.terminated (pipe_);
+    dist.pipe_terminated (pipe_);
 }
 
 void zmq::xpub_t::mark_as_matching (pipe_t *pipe_, void *arg_)
@@ -189,15 +189,3 @@ void zmq::xpub_t::send_unsubscription (unsigned char *data_, size_t size_,
         self->pending_flags.push_back (0);
     }
 }
-
-zmq::xpub_session_t::xpub_session_t (io_thread_t *io_thread_, bool connect_,
-      socket_base_t *socket_, const options_t &options_,
-      const address_t *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_)
-{
-}
-
-zmq::xpub_session_t::~xpub_session_t ()
-{
-}
-

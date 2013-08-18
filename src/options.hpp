@@ -28,6 +28,11 @@
 #include "tcp_address.hpp"
 #include "../include/zmq.h"
 
+//  Normal base 256 key is 32 bytes
+#define CURVE_KEYSIZE       32
+//  Key encoded using Z85 is 40 bytes
+#define CURVE_KEYSIZE_Z85   40
+
 namespace zmq
 {
     struct options_t
@@ -47,9 +52,6 @@ namespace zmq
         //  Socket identity
         unsigned char identity_size;
         unsigned char identity [256];
-
-        // Last socket endpoint resolved URI
-        std::string last_endpoint;
 
         //  Maximum tranfer rate [kb/s]. Default 100kb/s.
         int rate;
@@ -125,12 +127,18 @@ namespace zmq
 
         //  Security mechanism for all connections on this socket
         int mechanism;
+        
         //  If peer is acting as server for PLAIN or CURVE mechanisms
         int as_server;          
         
         //  Security credentials for PLAIN mechanism
         std::string plain_username;
         std::string plain_password;
+
+        //  Security credentials for CURVE mechanism
+        uint8_t curve_public_key [CURVE_KEYSIZE];
+        uint8_t curve_secret_key [CURVE_KEYSIZE];
+        uint8_t curve_server_key [CURVE_KEYSIZE];
 
         //  ID of the socket.
         int socket_id;

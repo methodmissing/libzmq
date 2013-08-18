@@ -43,6 +43,14 @@ namespace zmq
         int xrecv (zmq::msg_t *msg_);
         bool xhas_in ();
         bool xhas_out ();
+        int xsetsockopt (int option_, const void *optval_, size_t optvallen_);
+        void xpipe_terminated (zmq::pipe_t *pipe_);
+
+    protected:
+
+        //  Receive only from the pipe the request was sent to, discarding
+        //  frames from other pipes.
+        int recv_reply_pipe (zmq::msg_t *msg_);
 
     private:
 
@@ -54,11 +62,26 @@ namespace zmq
         //  of the message must be empty message part (backtrace stack bottom).
         bool message_begins;
 
+        //  The pipe the request was sent to and where the reply is expected.
+        zmq::pipe_t *reply_pipe;
+
+        //  Whether request id frames shall be sent and expected.
+        bool request_id_frames_enabled;
+
+        //  The current request id. It is incremented every time before a new
+        //  request is sent.
+        uint32_t request_id;
+
+        //  If false, send() will reset its internal state and terminate the
+        //  reply_pipe's connection instead of failing if a previous request is
+        //  still pending.
+        bool strict;
+
         req_t (const req_t&);
         const req_t &operator = (const req_t&);
     };
 
-    class req_session_t : public dealer_session_t
+    class req_session_t : public session_base_t
     {
     public:
 

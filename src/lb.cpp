@@ -41,7 +41,7 @@ void zmq::lb_t::attach (pipe_t *pipe_)
     activated (pipe_);
 }
 
-void zmq::lb_t::terminated (pipe_t *pipe_)
+void zmq::lb_t::pipe_terminated (pipe_t *pipe_)
 {
     pipes_t::size_type index = pipes.index (pipe_);
 
@@ -70,6 +70,11 @@ void zmq::lb_t::activated (pipe_t *pipe_)
 
 int zmq::lb_t::send (msg_t *msg_)
 {
+    return sendpipe (msg_, NULL);
+}
+
+int zmq::lb_t::sendpipe (msg_t *msg_, pipe_t **pipe_)
+{
     //  Drop the message if required. If we are at the end of the message
     //  switch back to non-dropping mode.
     if (dropping) {
@@ -86,7 +91,11 @@ int zmq::lb_t::send (msg_t *msg_)
 
     while (active > 0) {
         if (pipes [current]->write (msg_))
+        {
+            if (pipe_)
+                *pipe_ = pipes [current];
             break;
+        }
 
         zmq_assert (!more);
         active--;
@@ -102,8 +111,8 @@ int zmq::lb_t::send (msg_t *msg_)
         return -1;
     }
 
-    //  If it's final part of the message we can fluch it downstream and
-    //  continue round-robinning (load balance).
+    //  If it's final part of the message we can flush it downstream and
+    //  continue round-robining (load balance).
     more = msg_->flags () & msg_t::more? true: false;
     if (!more) {
         pipes [current]->flush ();
@@ -139,4 +148,3 @@ bool zmq::lb_t::has_out ()
 
     return false;
 }
-

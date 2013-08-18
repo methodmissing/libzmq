@@ -42,6 +42,8 @@
 #include "v2_decoder.hpp"
 #include "null_mechanism.hpp"
 #include "plain_mechanism.hpp"
+#include "curve_client.hpp"
+#include "curve_server.hpp"
 #include "raw_decoder.hpp"
 #include "raw_encoder.hpp"
 #include "config.hpp"
@@ -70,7 +72,6 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_,
     read_msg (&stream_engine_t::read_identity),
     write_msg (&stream_engine_t::write_identity),
     io_error (false),
-    congested (false),
     subscription_required (false),
     mechanism (NULL),
     input_paused (false),
@@ -82,25 +83,9 @@ zmq::stream_engine_t::stream_engine_t (fd_t fd_, const options_t &options_,
     
     //  Put the socket into non-blocking mode.
     unblock_socket (s);
-    //  Set the socket buffer limits for the underlying socket.
-    if (options.sndbuf) {
-        rc = setsockopt (s, SOL_SOCKET, SO_SNDBUF,
-            (char*) &options.sndbuf, sizeof (int));
-#ifdef ZMQ_HAVE_WINDOWS
-		wsa_assert (rc != SOCKET_ERROR);
-#else
-        errno_assert (rc == 0);
-#endif
-    }
-    if (options.rcvbuf) {
-        rc = setsockopt (s, SOL_SOCKET, SO_RCVBUF,
-            (char*) &options.rcvbuf, sizeof (int));
-#ifdef ZMQ_HAVE_WINDOWS
-		wsa_assert (rc != SOCKET_ERROR);
-#else
-        errno_assert (rc == 0);
-#endif
-    }
+
+    if (!get_peer_ip_address (s, peer_address))
+        peer_address = "";
 
 #ifdef SO_NOSIGPIPE
     //  Make sure that SIGPIPE signal is not generated when writing to a
@@ -133,6 +118,8 @@ zmq::stream_engine_t::~stream_engine_t ()
         delete encoder;
     if (decoder != NULL)
         delete decoder;
+    if (mechanism != NULL)
+        delete mechanism;
 }
 
 void zmq::stream_engine_t::plug (io_thread_t *io_thread_,
@@ -220,7 +207,7 @@ void zmq::stream_engine_t::in_event ()
     zmq_assert (decoder);
 
     //  If there has been an I/O error, stop polling.
-    if (congested) {
+    if (input_paused) {
         rm_fd (handle);
         io_error = true;
         return;
@@ -268,7 +255,7 @@ void zmq::stream_engine_t::in_event ()
             error ();
             return;
         }
-        congested = true;
+        input_paused = true;
         reset_pollin (handle);
     }
 
@@ -307,6 +294,7 @@ void zmq::stream_engine_t::out_event ()
 
         //  If there is no data to send, stop polling for output.
         if (outsize == 0) {
+            output_paused = true;
             reset_pollout (handle);
             return;
         }
@@ -348,7 +336,10 @@ void zmq::stream_engine_t::activate_out ()
     if (unlikely (io_error))
         return;
 
-    set_pollout (handle);
+    if (likely (output_paused)) {
+        set_pollout (handle);
+        output_paused = false;
+    }
 
     //  Speculative write: The assumption is that at the moment new message
     //  was sent by the user the socket is probably available for writing.
@@ -359,7 +350,7 @@ void zmq::stream_engine_t::activate_out ()
 
 void zmq::stream_engine_t::activate_in ()
 {
-    zmq_assert (congested);
+    zmq_assert (input_paused);
     zmq_assert (session != NULL);
     zmq_assert (decoder != NULL);
 
@@ -391,7 +382,7 @@ void zmq::stream_engine_t::activate_in ()
     if (rc == -1 || io_error)
         error ();
     else {
-        congested = false;
+        input_paused = false;
         set_pollin (handle);
         session->flush ();
 
@@ -454,10 +445,18 @@ bool zmq::stream_engine_t::handshake ()
                 else {
                     outpos [outsize++] = 0; //  Minor version number
                     memset (outpos + outsize, 0, 20);
+
+                    zmq_assert (options.mechanism == ZMQ_NULL
+                            ||  options.mechanism == ZMQ_PLAIN
+                            ||  options.mechanism == ZMQ_CURVE);
+
                     if (options.mechanism == ZMQ_NULL)
                         memcpy (outpos + outsize, "NULL", 4);
                     else
+                    if (options.mechanism == ZMQ_PLAIN)
                         memcpy (outpos + outsize, "PLAIN", 5);
+                    else
+                        memcpy (outpos + outsize, "CURVE", 5);
                     outsize += 20;
                     memset (outpos + outsize, 0, 32);
                     outsize += 32;
@@ -526,14 +525,27 @@ bool zmq::stream_engine_t::handshake ()
         alloc_assert (decoder);
 
         if (memcmp (greeting_recv + 12, "NULL\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 20) == 0) {
-            mechanism = new (std::nothrow) null_mechanism_t (options);
+            mechanism = new (std::nothrow)
+                null_mechanism_t (session, peer_address, options);
             alloc_assert (mechanism);
         }
         else
         if (memcmp (greeting_recv + 12, "PLAIN\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 20) == 0) {
-            mechanism = new (std::nothrow) plain_mechanism_t (options);
+            mechanism = new (std::nothrow)
+                plain_mechanism_t (session, peer_address, options);
             alloc_assert (mechanism);
         }
+#ifdef HAVE_LIBSODIUM
+        else
+        if (memcmp (greeting_recv + 12, "CURVE\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0", 20) == 0) {
+            if (options.as_server)
+                mechanism = new (std::nothrow)
+                    curve_server_t (session, peer_address, options);
+            else
+                mechanism = new (std::nothrow) curve_client_t (options);
+            alloc_assert (mechanism);
+        }
+#endif
         else {
             error ();
             return false;
@@ -594,15 +606,6 @@ int zmq::stream_engine_t::next_handshake_message (msg_t *msg_)
     if (rc == 0) {
         if (mechanism->is_handshake_complete ())
             mechanism_ready ();
-        if (input_paused) {
-            activate_in ();
-            input_paused = false;
-        }
-    }
-    else
-    if (rc == -1) {
-        zmq_assert (errno == EAGAIN);
-        output_paused = true;
     }
 
     return rc;
@@ -616,16 +619,26 @@ int zmq::stream_engine_t::process_handshake_message (msg_t *msg_)
     if (rc == 0) {
         if (mechanism->is_handshake_complete ())
             mechanism_ready ();
-        if (output_paused) {
+        if (output_paused)
             activate_out ();
-            output_paused = false;
-        }
     }
-    else
-    if (rc == -1 && errno == EAGAIN)
-        input_paused = true;
 
     return rc;
+}
+
+void zmq::stream_engine_t::zap_msg_available ()
+{
+    zmq_assert (mechanism != NULL);
+
+    const int rc = mechanism->zap_msg_available ();
+    if (rc == -1) {
+        error ();
+        return;
+    }
+    if (input_paused)
+        activate_in ();
+    if (output_paused)
+        activate_out ();
 }
 
 void zmq::stream_engine_t::mechanism_ready ()
@@ -634,11 +647,17 @@ void zmq::stream_engine_t::mechanism_ready ()
         msg_t identity;
         mechanism->peer_identity (&identity);
         const int rc = session->push_msg (&identity);
+        if (rc == -1 && errno == EAGAIN) {
+            // If the write is failing at this stage with
+            // an EAGAIN the pipe must be being shut down,
+            // so we can just bail out of the identity set.
+            return;
+        }
         errno_assert (rc == 0);
     }
 
-    read_msg = &stream_engine_t::pull_msg_from_session;
-    write_msg = &stream_engine_t::push_msg_to_session;
+    read_msg = &stream_engine_t::pull_and_encode;
+    write_msg = &stream_engine_t::decode_and_push;
 }
 
 int zmq::stream_engine_t::pull_msg_from_session (msg_t *msg_)
@@ -649,6 +668,39 @@ int zmq::stream_engine_t::pull_msg_from_session (msg_t *msg_)
 int zmq::stream_engine_t::push_msg_to_session (msg_t *msg_)
 {
     return session->push_msg (msg_);
+}
+
+int zmq::stream_engine_t::pull_and_encode (msg_t *msg_)
+{
+    zmq_assert (mechanism != NULL);
+
+    if (session->pull_msg (msg_) == -1)
+        return -1;
+    if (mechanism->encode (msg_) == -1)
+        return -1;
+    return 0;
+}
+
+int zmq::stream_engine_t::decode_and_push (msg_t *msg_)
+{
+    zmq_assert (mechanism != NULL);
+
+    if (mechanism->decode (msg_) == -1)
+        return -1;
+    if (session->push_msg (msg_) == -1) {
+        if (errno == EAGAIN)
+            write_msg = &stream_engine_t::push_one_then_decode_and_push;
+        return -1;
+    }
+    return 0;
+}
+
+int zmq::stream_engine_t::push_one_then_decode_and_push (msg_t *msg_)
+{
+    const int rc = session->push_msg (msg_);
+    if (rc == 0)
+        write_msg = &stream_engine_t::decode_and_push;
+    return rc;
 }
 
 int zmq::stream_engine_t::write_subscription_msg (msg_t *msg_)

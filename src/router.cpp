@@ -32,9 +32,10 @@ zmq::router_t::router_t (class ctx_t *parent_, uint32_t tid_, int sid_) :
     current_out (NULL),
     more_out (false),
     next_peer_id (generate_random ()),
-    mandatory(false),
-    raw_sock(false),
-    announce_self(false)
+    mandatory (false),
+    //  raw_sock functionality in ROUTER is deprecated
+    raw_sock (false),       
+    probe_router (false)
 {
     options.type = ZMQ_ROUTER;
     options.recv_identity = true;
@@ -58,6 +59,19 @@ void zmq::router_t::xattach_pipe (pipe_t *pipe_, bool icanhasall_)
     (void)icanhasall_;
 
     zmq_assert (pipe_);
+
+    if (probe_router) {
+        msg_t probe_msg_;
+        int rc = probe_msg_.init ();
+        errno_assert (rc == 0);
+
+        rc = pipe_->write (&probe_msg_);
+        // zmq_assert (rc) is not applicable here, since it is not a bug.
+        pipe_->flush ();
+
+        rc = probe_msg_.close ();
+        errno_assert (rc == 0);
+    }
 
     bool identity_ok = identify_peer (pipe_);
     if (identity_ok)
@@ -83,21 +97,21 @@ int zmq::router_t::xsetsockopt (int option_, const void *optval_,
                 return 0;
             }
             break;
-        
+
         case ZMQ_ROUTER_MANDATORY:
             if (is_int && value >= 0) {
                 mandatory = value;
                 return 0;
             }
             break;
-            
-        case ZMQ_ROUTER_ANNOUNCE_SELF:
+
+        case ZMQ_PROBE_ROUTER:
             if (is_int && value >= 0) {
-                announce_self = value;
+                probe_router = value;
                 return 0;
             }
             break;
-            
+
         default:
             break;
     }
@@ -106,7 +120,7 @@ int zmq::router_t::xsetsockopt (int option_, const void *optval_,
 }
 
 
-void zmq::router_t::xterminated (pipe_t *pipe_)
+void zmq::router_t::xpipe_terminated (pipe_t *pipe_)
 {
     std::set <pipe_t*>::iterator it = anonymous_pipes.find (pipe_);
     if (it != anonymous_pipes.end ())
@@ -115,7 +129,7 @@ void zmq::router_t::xterminated (pipe_t *pipe_)
         outpipes_t::iterator it = outpipes.find (pipe_->get_identity ());
         zmq_assert (it != outpipes.end ());
         outpipes.erase (it);
-        fq.terminated (pipe_);
+        fq.pipe_terminated (pipe_);
         if (pipe_ == current_out)
             current_out = NULL;
     }
@@ -259,7 +273,6 @@ int zmq::router_t::xrecv (msg_t *msg_)
     //  It's possible that we receive peer's identity. That happens
     //  after reconnection. The current implementation assumes that
     //  the peer always uses the same identity.
-    //  TODO: handle the situation when the peer changes its identity.
     while (rc == 0 && msg_->is_identity ())
         rc = fq.recvpipe (msg_, &pipe);
 
@@ -391,26 +404,5 @@ bool zmq::router_t::identify_peer (pipe_t *pipe_)
     ok = outpipes.insert (outpipes_t::value_type (identity, outpipe)).second;
     zmq_assert (ok);
 
-    if (announce_self) {
-        msg_t tmp_;
-        tmp_.init ();
-        ok = pipe_->write (&tmp_);
-        zmq_assert (ok);
-        pipe_->flush ();
-        tmp_.close ();
-    };
-
     return true;
 }
-
-zmq::router_session_t::router_session_t (io_thread_t *io_thread_, bool connect_,
-      socket_base_t *socket_, const options_t &options_,
-      const address_t *addr_) :
-    session_base_t (io_thread_, connect_, socket_, options_, addr_)
-{
-}
-
-zmq::router_session_t::~router_session_t ()
-{
-}
-

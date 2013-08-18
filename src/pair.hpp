@@ -47,7 +47,7 @@ namespace zmq
         bool xhas_out ();
         void xread_activated (zmq::pipe_t *pipe_);
         void xwrite_activated (zmq::pipe_t *pipe_);
-        void xterminated (zmq::pipe_t *pipe_);
+        void xpipe_terminated (zmq::pipe_t *pipe_);
 
     private:
 
@@ -55,21 +55,6 @@ namespace zmq
 
         pair_t (const pair_t&);
         const pair_t &operator = (const pair_t&);
-    };
-
-    class pair_session_t : public session_base_t
-    {
-    public:
-
-        pair_session_t (zmq::io_thread_t *io_thread_, bool connect_,
-            socket_base_t *socket_, const options_t &options_,
-            const address_t *addr_);
-        ~pair_session_t ();
-
-    private:
-
-        pair_session_t (const pair_session_t&);
-        const pair_session_t &operator = (const pair_session_t&);
     };
 
 }

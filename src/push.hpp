@@ -47,7 +47,7 @@ namespace zmq
         int xsend (zmq::msg_t *msg_);
         bool xhas_out ();
         void xwrite_activated (zmq::pipe_t *pipe_);
-        void xterminated (zmq::pipe_t *pipe_);
+        void xpipe_terminated (zmq::pipe_t *pipe_);
 
     private:
 
@@ -56,21 +56,6 @@ namespace zmq
 
         push_t (const push_t&);
         const push_t &operator = (const push_t&);
-    };
-
-    class push_session_t : public session_base_t
-    {
-    public:
-
-        push_session_t (zmq::io_thread_t *io_thread_, bool connect_,
-            socket_base_t *socket_, const options_t &options_,
-            const address_t *addr_);
-        ~push_session_t ();
-
-    private:
-
-        push_session_t (const push_session_t&);
-        const push_session_t &operator = (const push_session_t&);
     };
 
 }
