@@ -282,6 +282,9 @@ struct options_t
     // Use zero copy strategy for storing message content when decoding.
     bool zero_copy;
 
+    // Use zero copy strategy for sending messages on TCP and UDP sockets
+    bool zero_copy_send;
+
     // Router socket ZMQ_NOTIFY_CONNECT/ZMQ_NOTIFY_DISCONNECT notifications
     int router_notify;
 

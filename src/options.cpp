@@ -247,6 +247,7 @@ zmq::options_t::options_t () :
     in_batch_size (8192),
     out_batch_size (8192),
     zero_copy (true),
+    zero_copy_send (false),
     router_notify (0),
     monitor_event_version (1),
     wss_trust_system (false),
@@ -494,6 +495,10 @@ int zmq::options_t::setsockopt (int option_,
                 return do_setsockopt_string_allow_empty_strict (
                   optval_, optvallen_, &socks_proxy_password, 255);
             }
+        case ZMQ_ZERO_COPY_SEND:
+            return do_setsockopt_int_as_bool_strict (optval_, optvallen_,
+                                                     &zero_copy_send);
+
         case ZMQ_TCP_KEEPALIVE:
             if (is_int && (value == -1 || value == 0 || value == 1)) {
                 tcp_keepalive = value;
@@ -1061,6 +1066,13 @@ int zmq::options_t::getsockopt (int option_,
 
         case ZMQ_SOCKS_PASSWORD:
             return do_getsockopt (optval_, optvallen_, socks_proxy_password);
+
+        case ZMQ_ZERO_COPY_SEND:
+            if (is_int) {
+                *value = zero_copy_send;
+                return 0;
+            }
+            break;
 
         case ZMQ_TCP_KEEPALIVE:
             if (is_int) {

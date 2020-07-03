@@ -901,6 +901,12 @@ LIBZMQ_CHECK_SO_BINDTODEVICE([
         [Whether SO_BINDTODEVICE is supported.])
     ])
 
+LIBZMQ_CHECK_SO_ZEROCOPY([
+    AC_DEFINE([ZMQ_HAVE_SO_ZEROCOPY],
+        [1],
+        [Whether SO_ZEROCOPY is supported.])
+    ])
+
 # TCP keep-alives Checks.
 LIBZMQ_CHECK_SO_KEEPALIVE([
     AC_DEFINE([ZMQ_HAVE_SO_KEEPALIVE],

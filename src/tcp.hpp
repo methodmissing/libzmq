@@ -40,6 +40,9 @@ struct options_t;
 //  Tunes the supplied TCP socket for the best latency.
 int tune_tcp_socket (fd_t s_);
 
+//  Tunes the supplied TCP socket for zero copy send
+int enable_zero_copy_send (fd_t s_);
+
 //  Sets the socket send buffer size.
 int set_tcp_send_buffer (fd_t sockfd_, int bufsize_);
 

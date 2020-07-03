@@ -389,6 +389,7 @@ ZMQ_EXPORT const char *zmq_msg_gets (const zmq_msg_t *msg_,
 /*  Send/recv options.                                                        */
 #define ZMQ_DONTWAIT 1
 #define ZMQ_SNDMORE 2
+#define ZMQ_ZEROCOPY 3
 
 /*  Security mechanisms                                                       */
 #define ZMQ_NULL 0
@@ -681,6 +682,7 @@ ZMQ_EXPORT void zmq_threadclose (void *thread_);
 #define ZMQ_RECONNECT_STOP 109
 #define ZMQ_HELLO_MSG 110
 #define ZMQ_DISCONNECT_MSG 111
+#define ZMQ_ZERO_COPY_SEND 112
 
 /*  DRAFT ZMQ_RECONNECT_STOP options                                          */
 #define ZMQ_RECONNECT_STOP_CONN_REFUSED 0x1

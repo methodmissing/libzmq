@@ -970,7 +970,18 @@ Option value unit:: messages
 Default value:: 8192
 Applicable socket types:: All, when using TCP, IPC, PGM or NORM transport.
 
+ZMQ_ZERO_COPY_SEND: If zero copy send is enabled
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+If the `SO_ZEROCOPY` socket option is enabled.
+
+NOTE: in DRAFT state, not yet available in stable releases.
+
+[horizontal]
+Option value type:: int
+Option value unit:: boolean
+Default value:: 0 (false)
+Applicable socket types:: All, when using TCP or UDP transport.
 
 RETURN VALUE
 ------------

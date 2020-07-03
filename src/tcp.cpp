@@ -77,6 +77,19 @@ int zmq::tune_tcp_socket (fd_t s_)
     return rc;
 }
 
+int zmq::enable_zero_copy_send (fd_t s_)
+{
+#ifdef ZMQ_HAVE_SO_ZEROCOPY
+    int zero_copy = 1;
+    const int rc =
+      setsockopt (s_, SOL_SOCKET, SO_ZEROCOPY,
+                  reinterpret_cast<char *> (&zero_copy), sizeof (int));
+    assert_success_or_recoverable (s_, rc);
+    return rc;
+#endif
+    return 0;
+}
+
 int zmq::set_tcp_send_buffer (fd_t sockfd_, int bufsize_)
 {
     const int rc =
@@ -393,6 +406,8 @@ zmq::fd_t zmq::tcp_open_socket (const char *address_,
         set_tcp_send_buffer (s, options_.sndbuf);
     if (options_.rcvbuf >= 0)
         set_tcp_receive_buffer (s, options_.rcvbuf);
+    if (options_.zero_copy_send == true)
+        enable_zero_copy_send (s);
 
     return s;
 

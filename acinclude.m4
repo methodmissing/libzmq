@@ -724,6 +724,32 @@ int main (int argc, char *argv [])
 }])
 
 dnl ################################################################################
+dnl # LIBZMQ_CHECK_SO_ZEROCOPY([action-if-found], [action-if-not-found])          #
+dnl # Check if SO_ZEROCOPY is supported                                           #
+dnl ################################################################################
+AC_DEFUN([LIBZMQ_CHECK_SO_ZEROCOPY], [{
+    AC_CACHE_CHECK([whether SO_ZEROCOPY is supported], [libzmq_cv_so_zerocopy],
+        [AC_TRY_RUN([/* SO_ZEROCOPY test */
+#include <sys/socket.h>
+
+int main (int argc, char *argv [])
+{
+    int s, rc, opt = 1;
+    return (
+        ((s = socket (PF_INET, SOCK_STREAM, 0)) == -1) ||
+        ((rc = setsockopt (s, SOL_SOCKET, SO_ZEROCOPY, (char*) &opt, sizeof (int))) == -1)
+    );
+}
+        ],
+        [libzmq_cv_so_zerocopy="yes"],
+        [libzmq_cv_so_zerocopy="no"],
+        [libzmq_cv_so_zerocopy="not during cross-compile"]
+        )]
+    )
+    AS_IF([test "x$libzmq_cv_so_zerocopy" = "xyes"], [$1], [$2])
+}])
+
+dnl ################################################################################
 dnl # LIBZMQ_CHECK_SO_KEEPALIVE([action-if-found], [action-if-not-found])          #
 dnl # Check if SO_KEEPALIVE is supported                                           #
 dnl ################################################################################

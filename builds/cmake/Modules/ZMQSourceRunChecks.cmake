@@ -67,6 +67,24 @@ int main(int argc, char *argv [])
     ZMQ_HAVE_SO_BINDTODEVICE)
 endmacro()
 
+macro(zmq_check_so_zerocopy)
+  message(STATUS "Checking whether SO_ZEROCOPY is supported")
+  check_c_source_runs(
+"
+#include <sys/socket.h>
+
+int main (int argc, char *argv [])
+{
+    int s, rc, opt = 1;
+    return (
+        ((s = socket (PF_INET, SOCK_STREAM, 0)) == -1) ||
+        ((rc = setsockopt (s, SOL_SOCKET, SO_ZEROCOPY, (char*) &opt, sizeof (int))) == -1)
+    );
+}
+"
+    ZMQ_HAVE_SO_ZEROCOPY)
+endmacro()
+
 # TCP keep-alives Checks.
 
 macro(zmq_check_so_keepalive)
